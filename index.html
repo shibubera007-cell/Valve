@@ -1,0 +1,3949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valve Data Management System</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+
+:root{
+  --primary:#0d2b5e;
+  --primary-light:#1a3f7a;
+  --primary-dark:#071b3d;
+  --accent:#2d7cf6;
+  --accent-light:#5a9aff;
+  --success:#28a745;
+  --warning:#ffc107;
+  --danger:#dc3545;
+  --info:#17a2b8;
+  --violet:#8b5cf6;
+  --sky:#0ea5e9;
+  --bg:#eef2f9;
+  --card-shadow:0 6px 22px rgba(13,43,94,.08);
+  --radius:16px;
+  --transition:all .28s cubic-bezier(.2,.8,.2,1);
+}
+
+body{
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #dbe7ff 0%, transparent 55%),
+    radial-gradient(1000px 500px at 100% 0%, #e6f4ff 0%, transparent 50%),
+    linear-gradient(160deg,#eef2f9 0%,#f8fafc 45%,#eaf0f9 100%);
+  background-attachment:fixed;
+  min-height:100vh;
+}
+
+/* ================= LOGIN ================= */
+#loginScreen{
+  position:fixed;inset:0;z-index:9999;
+  background:
+    radial-gradient(900px 500px at 15% 10%, rgba(45,124,246,.35), transparent 60%),
+    radial-gradient(800px 500px at 85% 90%, rgba(14,165,233,.28), transparent 60%),
+    linear-gradient(135deg,#04122a 0%,#0d2b5e 45%,#1a3f7a 100%);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;transition:opacity .5s ease;
+}
+#loginScreen.hidden{opacity:0;pointer-events:none;}
+.login-box{
+  background:rgba(255,255,255,.98);
+  border-radius:22px;
+  padding:40px 36px 32px;
+  width:100%;max-width:440px;
+  box-shadow:0 30px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.15);
+  text-align:center;position:relative;overflow:hidden;
+}
+.login-box::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:6px;
+  background:linear-gradient(90deg,#2d7cf6,#0ea5e9,#8b5cf6,#2d7cf6);
+  background-size:300% 100%;animation:slideBar 6s linear infinite;
+}
+@keyframes slideBar{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+
+.login-logo{
+  width:86px;height:86px;margin:0 auto 14px;
+  border-radius:22px;
+  background:linear-gradient(135deg,#0d2b5e,#2d7cf6);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 28px rgba(13,43,94,.35);
+  overflow:hidden;position:relative;
+}
+.login-logo img{width:100%;height:100%;object-fit:contain;background:#fff;padding:8px;}
+.login-logo .logo-fb{display:none;font-size:38px;color:#fff;}
+.login-logo.no-img .logo-fb{display:flex;}
+.login-logo.no-img{background:linear-gradient(135deg,#0d2b5e,#2d7cf6);}
+
+.login-box h1{
+  font-size:19px;color:var(--primary);font-weight:800;
+  letter-spacing:.6px;line-height:1.35;margin-bottom:6px;
+}
+.login-box .dev-by{
+  font-size:12.5px;color:#64748b;margin-bottom:26px;
+  font-weight:600;letter-spacing:.3px;
+}
+.login-box .dev-by b{color:var(--accent);}
+.login-box .form-group{text-align:left;margin-bottom:16px;}
+.login-box label{
+  font-size:12px;font-weight:700;color:#334155;display:block;
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;
+}
+.login-box input{
+  width:100%;padding:13px 16px;border:2px solid #e2e8f0;border-radius:11px;
+  font-size:15px;transition:var(--transition);background:#f8fafc;
+}
+.login-box input:focus{
+  border-color:var(--accent);outline:none;
+  box-shadow:0 0 0 4px rgba(45,124,246,.14);background:#fff;
+}
+.login-box .btn-login{
+  width:100%;padding:14px;border:none;border-radius:11px;
+  background:linear-gradient(135deg,#0d2b5e,#2d7cf6);color:#fff;
+  font-size:15.5px;font-weight:700;cursor:pointer;
+  transition:var(--transition);margin-top:6px;letter-spacing:.4px;
+  box-shadow:0 10px 24px rgba(13,43,94,.28);
+}
+.login-box .btn-login:hover{transform:translateY(-2px);box-shadow:0 16px 32px rgba(13,43,94,.38);}
+.login-box .error-msg{color:var(--danger);font-size:13px;margin-top:12px;min-height:20px;font-weight:600;}
+
+/* ================= APP ================= */
+#app{display:none;min-height:100vh;}
+#app.active{display:block;}
+
+/* ---- HEADER ---- */
+.app-header{
+  background:linear-gradient(135deg,#071b3d 0%,#0d2b5e 50%,#1a3f7a 100%);
+  padding:0 26px;height:74px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;position:sticky;top:0;z-index:100;
+  box-shadow:0 6px 26px rgba(7,27,61,.28);
+}
+.app-header .brand{display:flex;align-items:center;gap:14px;min-width:0;}
+.logo-wrap{
+  width:46px;height:46px;flex:0 0 46px;border-radius:13px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;backdrop-filter:blur(6px);
+}
+.logo-wrap img{width:100%;height:100%;object-fit:contain;background:#fff;padding:4px;}
+.logo-wrap .logo-fb{display:none;font-size:22px;color:#fff;}
+.logo-wrap.no-img .logo-fb{display:flex;}
+.brand-text{min-width:0;}
+.brand-text h1{
+  font-size:15.5px;font-weight:800;color:#fff;
+  letter-spacing:.9px;line-height:1.2;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.brand-text small{
+  display:block;font-size:10.5px;color:#93c5fd;
+  letter-spacing:.6px;font-weight:600;margin-top:2px;
+}
+.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;}
+
+/* Sync indicator */
+.sync-indicator{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 13px;border-radius:30px;cursor:pointer;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.18);
+  font-size:11.5px;font-weight:700;color:#e2e8f0;
+  transition:var(--transition);white-space:nowrap;user-select:none;
+}
+.sync-indicator:hover{background:rgba(255,255,255,.2);transform:translateY(-1px);}
+.sync-dot{
+  width:9px;height:9px;border-radius:50%;background:#94a3b8;
+  box-shadow:0 0 0 0 rgba(148,163,184,.6);flex:0 0 9px;
+}
+.sync-indicator.unconfigured .sync-dot{background:#94a3b8;}
+.sync-indicator.syncing .sync-dot{background:#38bdf8;animation:pulseDot 1s infinite;}
+.sync-indicator.synced .sync-dot{background:#22c55e;animation:pulseDot 2.4s infinite;}
+.sync-indicator.error .sync-dot{background:#ef4444;animation:pulseDot 1.2s infinite;}
+@keyframes pulseDot{
+  0%{box-shadow:0 0 0 0 currentColor;opacity:1}
+  70%{box-shadow:0 0 0 8px transparent;opacity:.85}
+  100%{box-shadow:0 0 0 0 transparent;opacity:1}
+}
+.sync-indicator.syncing .sync-text::after{content:'…';}
+.sync-indicator.synced{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.4);color:#bbf7d0;}
+.sync-indicator.error{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.4);color:#fecaca;}
+
+.user-badge{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);
+  padding:7px 14px 7px 11px;border-radius:30px;
+  font-size:12.5px;color:#fff;font-weight:600;cursor:pointer;
+  transition:var(--transition);
+}
+.user-badge:hover{background:rgba(255,255,255,.22);}
+.user-badge i{font-size:16px;color:#7dd3fc;}
+.user-badge em{
+  font-style:normal;font-size:9.5px;font-weight:800;
+  background:rgba(125,211,252,.25);color:#bae6fd;
+  padding:2px 8px;border-radius:20px;letter-spacing:.6px;text-transform:uppercase;
+}
+.btn-logout{
+  background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.35);
+  color:#fecaca;font-weight:700;font-size:12.5px;
+  padding:8px 14px;border-radius:9px;cursor:pointer;
+  display:flex;align-items:center;gap:7px;transition:var(--transition);
+}
+.btn-logout:hover{background:rgba(239,68,68,.32);color:#fff;}
+
+/* ---- TAB NAV ---- */
+.tab-nav{
+  background:#fff;padding:0 22px;display:flex;gap:2px;
+  border-bottom:2px solid #e6ecf5;position:sticky;top:74px;z-index:99;
+  overflow-x:auto;box-shadow:0 3px 14px rgba(13,43,94,.05);
+}
+.tab-nav::-webkit-scrollbar{height:0;}
+.tab-nav .tab-btn{
+  padding:15px 18px;background:none;border:none;
+  font-size:13px;font-weight:700;color:#64748b;cursor:pointer;
+  border-bottom:3px solid transparent;transition:var(--transition);
+  display:flex;align-items:center;gap:8px;white-space:nowrap;
+  border-radius:10px 10px 0 0;
+}
+.tab-nav .tab-btn:hover{color:var(--primary);background:#f4f8ff;}
+.tab-nav .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:#f4f8ff;}
+.tab-nav .tab-btn i{font-size:15px;}
+.tab-nav .tab-btn.new-module.active{color:#0ea5e9;border-bottom-color:#0ea5e9;background:#f0f9ff;}
+.tab-nav .tab-btn.plant-module.active{color:#10b981;border-bottom-color:#10b981;background:#f0fdf8;}
+.tab-nav .tab-btn.search-module.active{color:#8b5cf6;border-bottom-color:#8b5cf6;background:#f7f4ff;}
+.tab-nav .tab-btn.admin-module.active{color:#f97316;border-bottom-color:#f97316;background:#fff8f1;}
+
+/* ---- TAB CONTENT ---- */
+.tab-content{display:none;padding:26px 26px 46px;max-width:1420px;margin:0 auto;}
+.tab-content.active{display:block;animation:fadeUp .35s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---- KPI CARDS ---- */
+.kpi-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));
+  gap:18px;margin-bottom:28px;
+}
+.kpi-card{
+  background:#fff;border-radius:18px;padding:20px 22px;
+  position:relative;overflow:hidden;
+  box-shadow:0 4px 18px rgba(13,43,94,.07);
+  border:1px solid rgba(13,43,94,.055);
+  transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;
+  --k1:#2d7cf6;--k2:#0d2b5e;
+}
+.kpi-card:hover{transform:translateY(-5px);box-shadow:0 16px 38px rgba(13,43,94,.16);}
+.kpi-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:5px;
+  background:linear-gradient(180deg,var(--k1),var(--k2));
+}
+.kpi-card::after{
+  content:'';position:absolute;right:-38px;top:-38px;width:120px;height:120px;
+  border-radius:50%;
+  background:radial-gradient(circle,var(--k1) 0%,transparent 70%);
+  opacity:.13;pointer-events:none;
+}
+.kpi-card .kpi-icon{
+  position:absolute;right:15px;top:15px;
+  width:42px;height:42px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:#fff;
+  background:linear-gradient(135deg,var(--k1),var(--k2));
+  box-shadow:0 7px 16px rgba(13,43,94,.22);
+}
+.kpi-card .kpi-label{
+  font-size:11px;font-weight:800;color:#64748b;
+  text-transform:uppercase;letter-spacing:.6px;
+  padding-right:48px;line-height:1.4;
+}
+.kpi-card .kpi-value{
+  font-size:31px;font-weight:800;letter-spacing:-.8px;margin-top:8px;
+  background:linear-gradient(135deg,#0d2b5e,#2d7cf6);
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+}
+.kpi-card .kpi-value.neg{
+  background:none;-webkit-text-fill-color:var(--danger);color:var(--danger);
+}
+.kpi-card .kpi-sub{font-size:11.5px;color:#94a3b8;margin-top:5px;font-weight:600;}
+
+.kpi-grid .kpi-card:nth-child(1){--k1:#2d7cf6;--k2:#123c78;}
+.kpi-grid .kpi-card:nth-child(2){--k1:#f59e0b;--k2:#b45309;}
+.kpi-grid .kpi-card:nth-child(3){--k1:#10b981;--k2:#047857;}
+.kpi-grid .kpi-card:nth-child(4){--k1:#ef4444;--k2:#991b1b;}
+.kpi-grid .kpi-card:nth-child(5){--k1:#8b5cf6;--k2:#5b21b6;}
+.kpi-grid .kpi-card:nth-child(6){--k1:#ec4899;--k2:#9d174d;}
+.kpi-grid .kpi-card:nth-child(7){--k1:#06b6d4;--k2:#0e7490;}
+.kpi-grid .kpi-card:nth-child(8){--k1:#6366f1;--k2:#3730a3;}
+.kpi-grid .kpi-card:nth-child(9){--k1:#14b8a6;--k2:#0f766e;}
+.kpi-grid .kpi-card:nth-child(10){--k1:#f43f5e;--k2:#9f1239;}
+
+.kpi-grid.new-kpi .kpi-card:nth-child(1){--k1:#0ea5e9;--k2:#0369a1;}
+.kpi-grid.new-kpi .kpi-card:nth-child(2){--k1:#f97316;--k2:#c2410c;}
+.kpi-grid.new-kpi .kpi-card:nth-child(3){--k1:#22c55e;--k2:#15803d;}
+.kpi-grid.new-kpi .kpi-card:nth-child(4){--k1:#8b5cf6;--k2:#5b21b6;}
+.kpi-grid.new-kpi .kpi-card:nth-child(5){--k1:#ec4899;--k2:#9d174d;}
+.kpi-grid.new-kpi .kpi-card:nth-child(6){--k1:#14b8a6;--k2:#0f766e;}
+.kpi-grid.new-kpi .kpi-card:nth-child(7){--k1:#f43f5e;--k2:#9f1239;}
+.kpi-grid.new-kpi .kpi-card:nth-child(8){--k1:#6366f1;--k2:#3730a3;}
+
+.kpi-grid.plant-kpi .kpi-card:nth-child(1){--k1:#10b981;--k2:#065f46;}
+.kpi-grid.plant-kpi .kpi-card:nth-child(2){--k1:#2d7cf6;--k2:#123c78;}
+.kpi-grid.plant-kpi .kpi-card:nth-child(3){--k1:#f59e0b;--k2:#b45309;}
+.kpi-grid.plant-kpi .kpi-card:nth-child(4){--k1:#8b5cf6;--k2:#5b21b6;}
+.kpi-grid.plant-kpi .kpi-card:nth-child(5){--k1:#ec4899;--k2:#9d174d;}
+.kpi-grid.plant-kpi .kpi-card:nth-child(6){--k1:#0ea5e9;--k2:#0369a1;}
+
+.kpi-grid.search-kpi .kpi-card:nth-child(1){--k1:#8b5cf6;--k2:#5b21b6;}
+.kpi-grid.search-kpi .kpi-card:nth-child(2){--k1:#10b981;--k2:#065f46;}
+.kpi-grid.search-kpi .kpi-card:nth-child(3){--k1:#2d7cf6;--k2:#123c78;}
+.kpi-grid.search-kpi .kpi-card:nth-child(4){--k1:#0ea5e9;--k2:#0369a1;}
+.kpi-grid.search-kpi .kpi-card:nth-child(5){--k1:#f59e0b;--k2:#b45309;}
+.kpi-grid.search-kpi .kpi-card:nth-child(6){--k1:#ec4899;--k2:#9d174d;}
+.kpi-grid.search-kpi .kpi-card:nth-child(7){--k1:#14b8a6;--k2:#0f766e;}
+.kpi-grid.search-kpi .kpi-card:nth-child(8){--k1:#f43f5e;--k2:#9f1239;}
+
+/* ---- CHARTS ---- */
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:22px;margin-bottom:26px;}
+.chart-box{
+  background:#fff;border-radius:18px;padding:20px 22px 16px;
+  box-shadow:0 4px 18px rgba(13,43,94,.07);
+  border:1px solid rgba(13,43,94,.055);
+  transition:var(--transition);
+}
+.chart-box:hover{box-shadow:0 12px 32px rgba(13,43,94,.11);}
+.chart-box .chart-title{
+  font-size:14.5px;font-weight:800;color:var(--primary);
+  margin-bottom:16px;display:flex;align-items:center;gap:9px;
+  padding-bottom:11px;border-bottom:2px solid #f1f5f9;
+}
+.chart-box .chart-title i{color:var(--accent);font-size:15px;}
+.chart-box canvas{max-height:290px;max-width:100%;}
+
+/* ---- TABLES ---- */
+.table-section{
+  background:#fff;border-radius:18px;padding:20px 22px 24px;
+  box-shadow:0 4px 18px rgba(13,43,94,.07);
+  border:1px solid rgba(13,43,94,.055);
+}
+.table-section .table-header{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:14px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #f1f5f9;
+}
+.table-section .table-header h3{
+  font-size:15.5px;font-weight:800;color:var(--primary);
+  display:flex;align-items:center;gap:9px;
+}
+.table-section .table-header h3 i{color:var(--accent);}
+.table-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;}
+.table-actions input[type="date"]{
+  padding:8px 12px;border:2px solid #e2e8f0;border-radius:9px;
+  font-size:12.5px;transition:var(--transition);background:#f8fafc;color:#334155;
+}
+.table-actions input[type="date"]:focus{border-color:var(--accent);outline:none;background:#fff;}
+
+.btn{
+  padding:9px 17px;border:none;border-radius:9px;font-size:12.5px;
+  font-weight:700;cursor:pointer;transition:var(--transition);
+  display:inline-flex;align-items:center;gap:7px;letter-spacing:.2px;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:linear-gradient(135deg,#2d7cf6,#1a3f7a);color:#fff;box-shadow:0 5px 14px rgba(45,124,246,.28);}
+.btn-primary:hover{box-shadow:0 9px 22px rgba(45,124,246,.42);transform:translateY(-1px);}
+.btn-success{background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;box-shadow:0 5px 14px rgba(34,197,94,.28);}
+.btn-success:hover{box-shadow:0 9px 22px rgba(34,197,94,.42);transform:translateY(-1px);}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;box-shadow:0 5px 14px rgba(239,68,68,.28);}
+.btn-danger:hover{box-shadow:0 9px 22px rgba(239,68,68,.42);transform:translateY(-1px);}
+.btn-warning{background:linear-gradient(135deg,#fbbf24,#d97706);color:#fff;}
+.btn-warning:hover{transform:translateY(-1px);}
+.btn-sky{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;box-shadow:0 5px 14px rgba(14,165,233,.28);}
+.btn-sky:hover{box-shadow:0 9px 22px rgba(14,165,233,.42);transform:translateY(-1px);}
+.btn-violet{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;box-shadow:0 5px 14px rgba(139,92,246,.28);}
+.btn-violet:hover{box-shadow:0 9px 22px rgba(139,92,246,.42);transform:translateY(-1px);}
+.btn-outline{background:#fff;border:2px solid #e2e8f0;color:#475569;}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);background:#f0f7ff;}
+
+.table-wrap{overflow-x:auto;}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.table-wrap table th{
+  background:#f8fafc;color:var(--primary);font-weight:800;
+  padding:12px 14px;text-align:left;border-bottom:2px solid #e9edf2;
+  white-space:nowrap;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;
+}
+.table-wrap table td{padding:11px 14px;border-bottom:1px solid #f1f5f9;color:#334155;}
+.table-wrap table tr:hover td{background:#f8fbff;}
+.badge{
+  display:inline-block;padding:4px 11px;border-radius:30px;
+  font-size:11px;font-weight:800;letter-spacing:.2px;white-space:nowrap;
+}
+.badge-blue{background:#dbeafe;color:#1a56db;}
+.badge-yellow{background:#fef3c7;color:#92400e;}
+.badge-green{background:#d1fae5;color:#065f46;}
+.badge-red{background:#fee2e2;color:#991b1b;}
+.badge-purple{background:#e9d5ff;color:#6b21a8;}
+.badge-pink{background:#fce4ec;color:#b71c1c;}
+.badge-sky{background:#e0f2fe;color:#075985;}
+.badge-orange{background:#ffedd5;color:#9a3412;}
+.badge-violet{background:#ede9fe;color:#5b21b6;}
+.badge-grey{background:#f1f5f9;color:#64748b;}
+.badge-indigo{background:#e0e7ff;color:#3730a3;}
+.badge-teal{background:#ccfbf1;color:#115e59;}
+.badge-rose{background:#ffe4e6;color:#9f1239;}
+
+.empty-state{text-align:center;padding:44px 0;color:#94a3b8;font-size:13.5px;}
+.empty-state i{font-size:44px;opacity:.35;margin-bottom:12px;display:block;}
+
+/* ---- FILTER PANEL ---- */
+.filter-panel{
+  background:#fff;border-radius:18px;padding:22px 24px;
+  box-shadow:0 4px 18px rgba(13,43,94,.07);
+  margin-bottom:22px;
+  border:1px solid rgba(13,43,94,.055);border-top:5px solid #8b5cf6;
+}
+.filter-title{font-size:15px;font-weight:800;color:var(--primary);margin-bottom:16px;display:flex;align-items:center;gap:9px;}
+.filter-title i{color:#8b5cf6;}
+.filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(198px,1fr));gap:14px;margin-bottom:16px;}
+.filter-grid label{
+  display:block;font-size:10.5px;font-weight:800;color:#475569;
+  margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;
+}
+.filter-grid input,.filter-grid select{
+  width:100%;padding:10px 12px;border:2px solid #e2e8f0;border-radius:10px;
+  font-size:13px;transition:var(--transition);background:#f8fafc;color:#334155;
+}
+.filter-grid input:focus,.filter-grid select:focus{
+  border-color:#8b5cf6;outline:none;
+  box-shadow:0 0 0 4px rgba(139,92,246,.12);background:#fff;
+}
+.filter-actions{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  padding-top:15px;border-top:1px dashed #e2e8f0;
+}
+.filter-info{margin-left:auto;font-size:12.5px;color:#64748b;font-weight:700;}
+.filter-info strong{color:#8b5cf6;font-size:15px;}
+
+.quick-ranges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.quick-ranges .pill{
+  padding:7px 15px;border-radius:30px;background:#f1f5f9;color:#475569;
+  font-size:11.5px;font-weight:800;cursor:pointer;
+  border:2px solid transparent;transition:var(--transition);letter-spacing:.3px;
+}
+.quick-ranges .pill:hover{background:#ede9fe;color:#6b21a8;}
+.quick-ranges .pill.active{
+  background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;border-color:#8b5cf6;
+  box-shadow:0 5px 14px rgba(139,92,246,.35);
+}
+
+/* ---- MODALS ---- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(7,27,61,.55);
+  display:none;align-items:center;justify-content:center;
+  z-index:400;backdrop-filter:blur(5px);padding:18px;
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:#fff;border-radius:20px;padding:30px 34px 26px;
+  max-width:540px;width:100%;max-height:90vh;overflow-y:auto;
+  box-shadow:0 32px 70px rgba(0,0,0,.32);
+  animation:modalIn .28s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(24px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-title{
+  font-size:18px;font-weight:800;color:var(--primary);
+  margin-bottom:20px;display:flex;align-items:center;gap:10px;
+  padding-bottom:14px;border-bottom:2px solid #f1f5f9;
+}
+.modal-title i{color:var(--accent);}
+.form-group{margin-bottom:15px;}
+.form-group label{display:block;font-size:12px;font-weight:800;color:#334155;margin-bottom:5px;letter-spacing:.3px;}
+.form-group input,.form-group select{
+  width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;
+  font-size:13.5px;transition:var(--transition);background:#f8fafc;color:#334155;
+}
+.form-group input:focus,.form-group select:focus{
+  border-color:var(--accent);outline:none;
+  box-shadow:0 0 0 4px rgba(45,124,246,.12);background:#fff;
+}
+.form-group textarea{
+  width:100%;padding:11px 14px;border:2px solid #e2e8f0;border-radius:10px;
+  font-size:13.5px;transition:var(--transition);background:#f8fafc;color:#334155;
+  font-family:inherit;resize:vertical;min-height:60px;
+}
+.form-group textarea:focus{
+  border-color:var(--accent);outline:none;
+  box-shadow:0 0 0 4px rgba(45,124,246,.12);background:#fff;
+}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.modal-actions{
+  display:flex;gap:12px;justify-content:flex-end;margin-top:20px;
+  padding-top:16px;border-top:2px solid #f1f5f9;
+}
+.modal-actions .btn{padding:11px 26px;font-size:13.5px;}
+.btn-cancel{background:#f1f3f5;color:#334155;}
+.btn-cancel:hover{background:#e2e8f0;}
+.btn-submit{background:linear-gradient(135deg,#2d7cf6,#1a3f7a);color:#fff;box-shadow:0 6px 16px rgba(45,124,246,.3);}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(45,124,246,.42);}
+
+.stock-preview{
+  background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;
+  padding:14px 16px;font-size:13px;color:#475569;
+  display:flex;flex-wrap:wrap;gap:18px;align-items:center;
+  justify-content:space-between;margin-bottom:6px;
+}
+.stock-preview .pv-item{display:flex;flex-direction:column;gap:3px;}
+.stock-preview .pv-item small{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;font-weight:800;}
+.stock-preview .pv-item b{font-size:19px;color:var(--primary);}
+.stock-preview .pv-item b.neg{color:var(--danger);}
+.stock-preview .pv-item b.pos{color:var(--success);}
+.stock-preview .pv-arrow{color:#cbd5e1;font-size:16px;}
+
+.form-group.dest-group{background:#fffbeb;border:2px solid #fde68a;border-radius:12px;padding:12px 14px;}
+.form-group.dest-group label{color:#92400e;}
+.form-group.dest-group select{background:#fff;border-color:#fde68a;}
+.form-group.dest-group textarea{background:#fff;border-color:#fde68a;}
+.form-group.dest-group textarea:focus{border-color:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.14);}
+
+.form-group.teal-group{background:#f0fdfa;border:2px solid #99f6e4;border-radius:12px;padding:12px 14px;}
+.form-group.teal-group label{color:#115e59;}
+.form-group.teal-group textarea{background:#fff;border-color:#99f6e4;}
+.form-group.teal-group textarea:focus{border-color:#14b8a6;box-shadow:0 0 0 4px rgba(20,184,166,.14);}
+
+.info-banner{
+  background:#eff6ff;border:2px solid #bfdbfe;border-radius:10px;
+  padding:11px 14px;font-size:12px;color:#1e40af;
+  margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;line-height:1.55;
+}
+.info-banner i{color:#2563eb;margin-top:2px;flex:0 0 auto;}
+.info-banner.warn{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
+.info-banner.warn i{color:#ea580c;}
+
+/* ---- SETTINGS ---- */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px;}
+.settings-card{
+  background:#fff;border-radius:18px;padding:24px 26px;
+  box-shadow:0 4px 18px rgba(13,43,94,.07);
+  border:1px solid rgba(13,43,94,.055);
+}
+.settings-card h4{
+  font-size:15px;color:var(--primary);margin-bottom:16px;
+  display:flex;align-items:center;gap:9px;font-weight:800;
+  padding-bottom:12px;border-bottom:2px solid #f1f5f9;
+}
+.settings-card h4 i{color:var(--accent);}
+.settings-card .btn{padding:10px 22px;font-size:13px;}
+.settings-card .export-btns{display:flex;flex-wrap:wrap;gap:10px;}
+.status-msg{font-size:12.5px;margin-top:12px;padding:10px 14px;border-radius:9px;font-weight:700;line-height:1.5;}
+.status-msg.success{background:#d1fae5;color:#065f46;}
+.status-msg.error{background:#fee2e2;color:#991b1b;}
+.status-msg.info{background:#dbeafe;color:#1e40af;}
+
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:6px;}
+.perm-item{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;
+  background:#f8fafc;border:2px solid #e9eef5;border-radius:10px;
+  font-size:12.5px;font-weight:700;color:#334155;cursor:pointer;
+  transition:var(--transition);
+}
+.perm-item:hover{border-color:#c7d7ee;background:#f2f7ff;}
+.perm-item input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:0 0 16px;}
+
+.role-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:30px;font-size:11px;font-weight:800;letter-spacing:.3px;
+}
+.role-admin{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;}
+.role-user{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af;}
+.status-chip{padding:4px 11px;border-radius:30px;font-size:11px;font-weight:800;}
+.status-active{background:#d1fae5;color:#065f46;}
+.status-off{background:#fee2e2;color:#991b1b;}
+
+.icon-btn{
+  width:32px;height:32px;border-radius:9px;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:12.5px;transition:var(--transition);
+}
+.icon-btn.edit{background:#dbeafe;color:#1a56db;}
+.icon-btn.edit:hover{background:#bfdbfe;}
+.icon-btn.del{background:#fee2e2;color:#b91c1c;}
+.icon-btn.del:hover{background:#fecaca;}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width:1100px){
+  .charts-row{grid-template-columns:1fr;}
+  .brand-text h1{font-size:13px;letter-spacing:.5px;}
+}
+@media (max-width:820px){
+  .app-header{padding:0 14px;height:auto;flex-wrap:wrap;padding-top:10px;padding-bottom:10px;gap:10px;}
+  .tab-nav{top:0;position:relative;padding:0 10px;}
+  .brand-text small{display:none;}
+  .brand-text h1{font-size:11.5px;white-space:normal;line-height:1.3;}
+  .sync-indicator .sync-text{display:none;}
+  .sync-indicator{padding:8px 10px;}
+  .user-badge em{display:none;}
+  .tab-content{padding:16px 12px 40px;}
+  .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:12px;}
+  .kpi-card{padding:15px 16px;border-radius:15px;}
+  .kpi-card .kpi-value{font-size:23px;}
+  .kpi-card .kpi-icon{width:34px;height:34px;font-size:14px;border-radius:10px;right:12px;top:12px;}
+  .kpi-card .kpi-label{font-size:9.5px;padding-right:40px;}
+  .modal-box{padding:22px 18px;border-radius:16px;}
+  .form-row{grid-template-columns:1fr;}
+  .perm-grid{grid-template-columns:1fr;}
+  .filter-info{margin-left:0;width:100%;text-align:center;}
+  .btn-logout span{display:none;}
+  .table-section{padding:16px 14px 18px;}
+}
+@media (max-width:480px){
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .brand-text h1{font-size:10.5px;}
+}
+
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:#eef2f7;border-radius:8px;}
+::-webkit-scrollbar-thumb{background:#c1cbd8;border-radius:8px;}
+::-webkit-scrollbar-thumb:hover{background:#a3b0c2;}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo" id="loginLogo">
+      <img src="image.png" alt="Logo" onerror="this.style.display='none';this.parentElement.classList.add('no-img');">
+      <i class="fas fa-industry logo-fb"></i>
+    </div>
+    <h1>VALVE DATA MANAGEMENT SYSTEM</h1>
+    <div class="dev-by">Site developed by <b>Shibu Bera</b></div>
+
+    <div class="form-group">
+      <label><i class="fas fa-user"></i> Login ID</label>
+      <input type="text" id="loginUser" placeholder="Enter your login ID" autocomplete="username" autofocus>
+    </div>
+    <div class="form-group">
+      <label><i class="fas fa-lock"></i> Password</label>
+      <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i>&nbsp; Login</button>
+    <div class="error-msg" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo-wrap" id="headerLogo">
+        <img src="image.png" alt="Logo" onerror="this.style.display='none';this.parentElement.classList.add('no-img');">
+        <i class="fas fa-industry logo-fb"></i>
+      </div>
+      <div class="brand-text">
+        <h1>VALVE DATA MANAGEMENT SYSTEM</h1>
+        <small>Site developed by Shibu Bera</small>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="sync-indicator unconfigured" id="syncIndicator" onclick="handleSyncClick()" title="Cloud Database Sync (Firebase) — click to pull latest data">
+        <span class="sync-dot"></span><span class="sync-text">Not Configured</span>
+      </div>
+      <button class="user-badge" onclick="openAccountModal()" title="My Account">
+        <i class="fas fa-user-circle"></i>
+        <span id="headerUserName">User</span>
+        <em id="headerUserRole">user</em>
+      </button>
+      <button class="btn-logout" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></button>
+    </div>
+  </header>
+
+  <!-- TAB NAV -->
+  <nav class="tab-nav" id="tabNav">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <i class="fas fa-chart-pie"></i> Old Valve Dashboard
+    </button>
+    <button class="tab-btn" data-tab="transactions" onclick="switchTab('transactions')">
+      <i class="fas fa-list-ul"></i> Old Valve Transactions
+    </button>
+    <button class="tab-btn new-module" data-tab="newdashboard" onclick="switchTab('newdashboard')">
+      <i class="fas fa-box-open"></i> New Valve Dashboard
+    </button>
+    <button class="tab-btn new-module" data-tab="newtransactions" onclick="switchTab('newtransactions')">
+      <i class="fas fa-clipboard-list"></i> New Valve Transactions
+    </button>
+    <button class="tab-btn plant-module" data-tab="plantdashboard" onclick="switchTab('plantdashboard')">
+      <i class="fas fa-industry"></i> Plant Dashboard
+    </button>
+    <button class="tab-btn search-module" data-tab="searchdashboard" onclick="switchTab('searchdashboard')">
+      <i class="fas fa-search"></i> Search &amp; Reports
+    </button>
+    <button class="tab-btn admin-module" data-tab="users" onclick="switchTab('users')">
+      <i class="fas fa-users-cog"></i> Users
+    </button>
+    <button class="tab-btn admin-module" data-tab="settings" onclick="switchTab('settings')">
+      <i class="fas fa-sliders-h"></i> Settings &amp; Cloud Sync
+    </button>
+  </nav>
+
+  <!-- ============ OLD SC VALVE — DASHBOARD ============ -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div id="adminSetupBanner" style="display:none;"></div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-warehouse"></i>
+        <div class="kpi-label">Received from Shed</div>
+        <div class="kpi-value" id="kpiReceived">0</div>
+        <div class="kpi-sub">Current Stock</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-truck"></i>
+        <div class="kpi-label">Issued for Salvage</div>
+        <div class="kpi-value" id="kpiIssued">0</div>
+        <div class="kpi-sub">Current Stock</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-check-circle"></i>
+        <div class="kpi-label">Accepted Salvage</div>
+        <div class="kpi-value" id="kpiAccepted">0</div>
+        <div class="kpi-sub">Current Stock</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-times-circle"></i>
+        <div class="kpi-label">Rejected Salvage</div>
+        <div class="kpi-value" id="kpiRejected">0</div>
+        <div class="kpi-sub">Current Stock</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-warehouse"></i>
+        <div class="kpi-label">DPT Shed Stock</div>
+        <div class="kpi-value" id="kpiDptShed">0</div>
+        <div class="kpi-sub">Received from + issued to DPT</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-fill-drip"></i>
+        <div class="kpi-label">Filling Shed Stock</div>
+        <div class="kpi-value" id="kpiFillingShed">0</div>
+        <div class="kpi-sub">Received from + issued to Filling</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-recycle"></i>
+        <div class="kpi-label">Extra Valve from Damaged Cylinder</div>
+        <div class="kpi-value" id="kpiDamagedCylinder">0</div>
+        <div class="kpi-sub">Total received (all time)</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-hand-holding-heart"></i>
+        <div class="kpi-label">Received from Others</div>
+        <div class="kpi-value" id="kpiFromOthers">0</div>
+        <div class="kpi-sub">Total received (all time)</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-exchange-alt"></i>
+        <div class="kpi-label">Total Transactions</div>
+        <div class="kpi-value" id="kpiTotalTx">0</div>
+        <div class="kpi-sub">All Time</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-cubes"></i>
+        <div class="kpi-label">Total Valves in Store</div>
+        <div class="kpi-value" id="kpiTotalValves">0</div>
+        <div class="kpi-sub">Received + Accepted + Rejected</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-calendar-alt"></i> Monthly Received vs Issued</div>
+        <canvas id="monthlyChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-pie-chart"></i> Category Distribution</div>
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <h3><i class="fas fa-clock"></i> Recent Transactions</h3>
+        <div class="table-actions">
+          <button class="btn btn-primary edit-only" onclick="openAddTx()"><i class="fas fa-plus"></i> Add</button>
+          <button class="btn btn-outline" onclick="refreshDashboard()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Shed</th><th>Category</th><th>Qty</th><th>Description</th></tr></thead>
+          <tbody id="recentTxBody">
+            <tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i>No transactions yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ OLD SC VALVE — TRANSACTIONS ============ -->
+  <div class="tab-content" id="tab-transactions">
+    <div class="table-section">
+      <div class="table-header">
+        <h3><i class="fas fa-list-ul"></i> All Transactions</h3>
+        <div class="table-actions">
+          <input type="date" id="searchDateFrom" title="From Date">
+          <input type="date" id="searchDateTo" title="To Date">
+          <button class="btn btn-primary" onclick="applySearch()"><i class="fas fa-search"></i> Search</button>
+          <button class="btn btn-outline" onclick="clearSearch()"><i class="fas fa-undo"></i> Reset</button>
+          <button class="btn btn-primary edit-only" onclick="openAddTx()"><i class="fas fa-plus"></i> Add</button>
+          <button class="btn btn-danger" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn btn-success" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Type</th><th>Shed</th><th>Category</th><th>Qty</th><th>Description</th><th class="edit-only" style="width:60px;">Action</th></tr>
+          </thead>
+          <tbody id="allTxBody">
+            <tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i>No transactions found</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NEW SC VALVE — DASHBOARD ============ -->
+  <div class="tab-content" id="tab-newdashboard">
+    <div class="kpi-grid new-kpi">
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-warehouse"></i>
+        <div class="kpi-label">New SC Valve Stock at Store</div>
+        <div class="kpi-value" id="kpiNewStock">0</div>
+        <div class="kpi-sub">Live available balance</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-dolly"></i>
+        <div class="kpi-label">New SC Valve Issued</div>
+        <div class="kpi-value" id="kpiNewIssued">0</div>
+        <div class="kpi-sub">Total issued (all time)</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-boxes"></i>
+        <div class="kpi-label">Total New Valves Received</div>
+        <div class="kpi-value" id="kpiNewReceived">0</div>
+        <div class="kpi-sub">All time inflow</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-warehouse"></i>
+        <div class="kpi-label">DPT Shed Stock</div>
+        <div class="kpi-value" id="kpiNewDptShed">0</div>
+        <div class="kpi-sub">New issued + Old accepted − Old received</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-fill-drip"></i>
+        <div class="kpi-label">Filling Shed Stock</div>
+        <div class="kpi-value" id="kpiNewFillingShed">0</div>
+        <div class="kpi-sub">New issued + Old accepted − Old received</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-calendar-day"></i>
+        <div class="kpi-label">Issued Today</div>
+        <div class="kpi-value" id="kpiNewIssuedToday">0</div>
+        <div class="kpi-sub" id="kpiNewIssuedTodayLabel">Today</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-calendar-alt"></i>
+        <div class="kpi-label">Issued This Month</div>
+        <div class="kpi-value" id="kpiNewIssuedMonth">0</div>
+        <div class="kpi-sub" id="kpiNewIssuedMonthLabel">Current month</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-exchange-alt"></i>
+        <div class="kpi-label">Total Transactions</div>
+        <div class="kpi-value" id="kpiNewTotalTx">0</div>
+        <div class="kpi-sub">New valve records</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-chart-column"></i> Monthly New Valve Received vs Issued</div>
+        <canvas id="newMonthlyChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-chart-pie"></i> New Valve Distribution</div>
+        <canvas id="newCategoryChart"></canvas>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <h3><i class="fas fa-clock"></i> Recent New Valve Transactions</h3>
+        <div class="table-actions">
+          <button class="btn btn-sky edit-only" onclick="openNewAddTx('new_issued')"><i class="fas fa-dolly"></i> Issue Valve</button>
+          <button class="btn btn-success edit-only" onclick="openNewAddTx('new_received')"><i class="fas fa-plus"></i> Receive</button>
+          <button class="btn btn-outline" onclick="refreshNewDashboard()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Shed</th><th>Qty</th><th>Balance After</th><th>Description</th></tr></thead>
+          <tbody id="newRecentTxBody">
+            <tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i>No new valve transactions yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NEW SC VALVE — TRANSACTIONS ============ -->
+  <div class="tab-content" id="tab-newtransactions">
+    <div class="table-section">
+      <div class="table-header">
+        <h3><i class="fas fa-clipboard-list"></i> New SC Valve Transactions</h3>
+        <div class="table-actions">
+          <input type="date" id="newSearchDateFrom" title="From Date">
+          <input type="date" id="newSearchDateTo" title="To Date">
+          <button class="btn btn-primary" onclick="applyNewSearch()"><i class="fas fa-search"></i> Search</button>
+          <button class="btn btn-outline" onclick="clearNewSearch()"><i class="fas fa-undo"></i> Reset</button>
+          <button class="btn btn-sky edit-only" onclick="openNewAddTx('new_issued')"><i class="fas fa-dolly"></i> Issue</button>
+          <button class="btn btn-success edit-only" onclick="openNewAddTx('new_received')"><i class="fas fa-plus"></i> Add</button>
+          <button class="btn btn-danger" onclick="exportNewPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn btn-success" onclick="exportNewExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Type</th><th>Shed</th><th>Qty</th><th>Balance After</th><th>Description</th><th class="edit-only" style="width:60px;">Action</th></tr>
+          </thead>
+          <tbody id="newAllTxBody">
+            <tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i>No transactions found</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PLANT DASHBOARD ============ -->
+  <div class="tab-content" id="tab-plantdashboard">
+    <div class="kpi-grid plant-kpi">
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-industry"></i>
+        <div class="kpi-label">Total Valve Available in Plant</div>
+        <div class="kpi-value" id="kpiPlantTotal">0</div>
+        <div class="kpi-sub">Sum of all stock locations</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-warehouse"></i>
+        <div class="kpi-label">Total Valve in Store (Old)</div>
+        <div class="kpi-value" id="kpiPlantOldStore">0</div>
+        <div class="kpi-sub">Received + Accepted + Rejected</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-truck"></i>
+        <div class="kpi-label">Issued for Salvage (Old)</div>
+        <div class="kpi-value" id="kpiPlantOldIssued">0</div>
+        <div class="kpi-sub">Currently out for salvage</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-warehouse"></i>
+        <div class="kpi-label">DPT Shed Stock (New)</div>
+        <div class="kpi-value" id="kpiPlantDptShed">0</div>
+        <div class="kpi-sub">Net at DPT shed</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-fill-drip"></i>
+        <div class="kpi-label">Filling Shed Stock (New)</div>
+        <div class="kpi-value" id="kpiPlantFillingShed">0</div>
+        <div class="kpi-sub">Net at Filling shed</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-box-open"></i>
+        <div class="kpi-label">New SC Valve Stock (New)</div>
+        <div class="kpi-value" id="kpiPlantNewStock">0</div>
+        <div class="kpi-sub">At store</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-chart-bar"></i> Component Breakdown</div>
+        <canvas id="plantBreakdownChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-info-circle"></i> How it's calculated</div>
+        <div style="font-size:13.5px;color:#475569;line-height:1.9;padding:8px 0;">
+          <p><strong>Total Valve Available in Plant</strong> =</p>
+          <ul style="margin-left:20px;margin-top:8px;">
+            <li>Total Valve in Store (Old)</li>
+            <li>+ Issued for Salvage (Old)</li>
+            <li>+ DPT Shed Stock (New)</li>
+            <li>+ Filling Shed Stock (New)</li>
+            <li>+ New SC Valve Stock (New)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <h3><i class="fas fa-calculator"></i> Plant Stock Summary</h3>
+        <div class="table-actions">
+          <button class="btn btn-outline" onclick="refreshPlantDashboard()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Component</th><th>Source</th><th style="text-align:right;">Value</th></tr></thead>
+          <tbody id="plantSummaryBody">
+            <tr><td colspan="3" class="empty-state"><i class="fas fa-calculator"></i>No data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SEARCH & REPORTS ============ -->
+  <div class="tab-content" id="tab-searchdashboard">
+    <div class="filter-panel">
+      <div class="filter-title"><i class="fas fa-filter"></i> Advanced Search Filters</div>
+
+      <div class="quick-ranges">
+        <button class="pill" data-range="today" onclick="applyQuickRange('today', this)">Today</button>
+        <button class="pill" data-range="7d" onclick="applyQuickRange('7d', this)">Last 7 Days</button>
+        <button class="pill" data-range="30d" onclick="applyQuickRange('30d', this)">Last 30 Days</button>
+        <button class="pill" data-range="mtd" onclick="applyQuickRange('mtd', this)">This Month</button>
+        <button class="pill" data-range="ytd" onclick="applyQuickRange('ytd', this)">This Year</button>
+        <button class="pill active" data-range="all" onclick="applyQuickRange('all', this)">All Time</button>
+      </div>
+
+      <div class="filter-grid">
+        <div class="form-group">
+          <label>Date From</label>
+          <input type="date" id="srchDateFrom">
+        </div>
+        <div class="form-group">
+          <label>Date To</label>
+          <input type="date" id="srchDateTo">
+        </div>
+        <div class="form-group">
+          <label>Source</label>
+          <select id="srchSource" onchange="onSearchSourceChange()">
+            <option value="all">All Sources (Old + New)</option>
+            <option value="old">Old Valve Only</option>
+            <option value="new">New Valve Only</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="srchCategory"><option value="all">All Categories</option></select>
+        </div>
+        <div class="form-group">
+          <label>Shed</label>
+          <select id="srchShed">
+            <option value="all">All Sheds</option>
+            <option value="dpt">DPT Shed</option>
+            <option value="filling">Filling Shed</option>
+            <option value="none">No Shed (Store / Salvage / Others)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Description / Details Search</label>
+          <input type="text" id="srchText" placeholder="Search description, source, cylinder no...">
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn-violet" onclick="runSearchDashboard()"><i class="fas fa-search"></i> Apply Filters</button>
+        <button class="btn btn-outline" onclick="resetSearchDashboard()"><i class="fas fa-undo"></i> Reset All</button>
+        <button class="btn btn-danger" onclick="exportSearchPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn btn-success" onclick="exportSearchExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <div class="filter-info">
+          Matches: <strong id="srchMatchCount">0</strong> of <strong id="srchTotalCount">0</strong> total records
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-grid search-kpi">
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-list-ol"></i>
+        <div class="kpi-label">Filtered Transactions</div>
+        <div class="kpi-value" id="srchKpiTx">0</div>
+        <div class="kpi-sub">Records in current filter</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-cubes"></i>
+        <div class="kpi-label">Total Valve Quantity</div>
+        <div class="kpi-value" id="srchKpiQty">0</div>
+        <div class="kpi-sub">Sum of filtered quantities</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-tags"></i>
+        <div class="kpi-label">Old Valve Qty</div>
+        <div class="kpi-value" id="srchKpiOldQty">0</div>
+        <div class="kpi-sub">From old valve records</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-tag"></i>
+        <div class="kpi-label">New Valve Qty</div>
+        <div class="kpi-value" id="srchKpiNewQty">0</div>
+        <div class="kpi-sub">From new valve records</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-warehouse"></i>
+        <div class="kpi-label">DPT Shed Qty</div>
+        <div class="kpi-value" id="srchKpiDptQty">0</div>
+        <div class="kpi-sub">Filtered DPT movements</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-fill-drip"></i>
+        <div class="kpi-label">Filling Shed Qty</div>
+        <div class="kpi-value" id="srchKpiFillingQty">0</div>
+        <div class="kpi-sub">Filtered Filling movements</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-recycle"></i>
+        <div class="kpi-label">Damaged Cylinder Qty</div>
+        <div class="kpi-value" id="srchKpiDamagedQty">0</div>
+        <div class="kpi-sub">Extra valves from damaged cylinders</div>
+      </div>
+      <div class="kpi-card">
+        <i class="kpi-icon fas fa-hand-holding-heart"></i>
+        <div class="kpi-label">Received from Others Qty</div>
+        <div class="kpi-value" id="srchKpiOthersQty">0</div>
+        <div class="kpi-sub">Outside / miscellaneous receipts</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-chart-column"></i> Category-wise Breakdown (Filtered)</div>
+        <canvas id="srchCategoryChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title"><i class="fas fa-chart-line"></i> Monthly Trend (Filtered)</div>
+        <canvas id="srchMonthlyChart"></canvas>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <h3><i class="fas fa-search"></i> Filtered Transactions</h3>
+        <div class="table-actions"><span id="srchResultLabel" style="font-size:12.5px;color:#6c757d;font-weight:700;"></span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Source</th><th>Date</th><th>Type</th><th>Shed</th><th>Qty</th><th>Description</th></tr></thead>
+          <tbody id="srchResultsBody">
+            <tr><td colspan="6" class="empty-state"><i class="fas fa-search"></i>Apply filters to see results</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-section" style="margin-top:22px;">
+      <div class="table-header">
+        <h3><i class="fas fa-table"></i> Category Totals (Filtered)</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Category</th><th>Source</th><th style="text-align:right;">Transactions</th><th style="text-align:right;">Total Quantity</th></tr>
+          </thead>
+          <tbody id="srchCategoryTotalsBody">
+            <tr><td colspan="4" class="empty-state"><i class="fas fa-table"></i>No data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ USERS (ADMIN) ============ -->
+  <div class="tab-content" id="tab-users">
+    <div class="table-section">
+      <div class="table-header">
+        <h3><i class="fas fa-users-cog"></i> User Accounts</h3>
+        <div class="table-actions">
+          <button class="btn btn-primary" onclick="openUserModal()"><i class="fas fa-user-plus"></i> Add User</button>
+          <button class="btn btn-outline" onclick="renderUsersTable()"><i class="fas fa-sync"></i> Refresh</button>
+          <button class="btn btn-violet" onclick="pushUsersToServer()"><i class="fas fa-cloud-upload-alt"></i> Push Users</button>
+        </div>
+      </div>
+      <div class="info-banner" style="margin:0 0 16px 0;">
+        <i class="fas fa-shield-alt"></i>
+        <span>Users with the <strong>User (View Only)</strong> role can only view the dashboards and transactions they are permitted to. They cannot add, delete, search, export or configure anything.</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Login ID</th><th>Role</th><th>Permissions</th><th>Status</th><th>Created</th><th style="width:110px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="6" class="empty-state"><i class="fas fa-users"></i>No users</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS (ADMIN) ============ -->
+  <div class="tab-content" id="tab-settings">
+    <div class="settings-grid">
+
+      <!-- CLOUD DATABASE SYNC (FIREBASE) -->
+      <div class="settings-card" style="grid-column:1/-1;">
+        <h4><i class="fas fa-cloud-upload-alt"></i> Cloud Database Sync (Firebase) — Configuration</h4>
+        <div class="info-banner">
+          <i class="fas fa-info-circle"></i>
+          <span>
+            Connect this app to your own <strong>Cloud Database (Firebase Realtime Database)</strong>
+            so all valve data and users are synced across every device automatically.
+            Create a database in your Firebase console, copy the database URL
+            (e.g. <code>https://your-project-default-rtdb.firebaseio.com</code>) and paste it below.
+            All data is stored securely under <code>/scValveStore</code>.
+          </span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Firebase Database URL</label>
+            <input type="text" id="fbUrl" placeholder="https://your-project-default-rtdb.firebaseio.com">
+          </div>
+          <div class="form-group">
+            <label>Database Secret / Auth Token (optional)</label>
+            <input type="text" id="fbToken" placeholder="Leave blank if database rules are open">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:700;">
+            <input type="checkbox" id="fbAuto" style="width:16px;height:16px;accent-color:#2d7cf6;">
+            Automatically upload changes to server (auto-sync)
+          </label>
+        </div>
+        <div class="export-btns">
+          <button class="btn btn-primary" onclick="saveFirebaseConfig()"><i class="fas fa-save"></i> Save Configuration</button>
+          <button class="btn btn-outline" onclick="testFirebaseConnection()"><i class="fas fa-plug"></i> Test Connection</button>
+          <button class="btn btn-violet" onclick="pushToServer(false)"><i class="fas fa-cloud-upload-alt"></i> Upload (Push)</button>
+          <button class="btn btn-sky" onclick="pullFromServer(false, true)"><i class="fas fa-cloud-download-alt"></i> Download (Pull)</button>
+          <button class="btn btn-danger" onclick="clearFirebaseConfig()"><i class="fas fa-unlink"></i> Remove Config</button>
+        </div>
+        <div id="fbMsg" class="status-msg" style="display:none;"></div>
+      </div>
+
+      <!-- CHANGE PASSWORD -->
+      <div class="settings-card">
+        <h4><i class="fas fa-key"></i> Change My Password</h4>
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" id="curPass" placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="newPass" placeholder="Enter new password">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" id="confPass" placeholder="Confirm new password">
+        </div>
+        <button class="btn btn-primary" onclick="changePassword()"><i class="fas fa-save"></i> Update Password</button>
+        <div id="passMsg" class="status-msg" style="display:none;"></div>
+      </div>
+
+      <!-- OLD EXPORT -->
+      <div class="settings-card">
+        <h4><i class="fas fa-file-export"></i> Old SC Valve — Export</h4>
+        <p style="font-size:13px;color:#6c757d;margin-bottom:14px;line-height:1.6;">
+          Download old valve data as PDF or Excel to share via mail or WhatsApp.
+        </p>
+        <div class="export-btns">
+          <button class="btn btn-danger" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn btn-success" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        </div>
+        <hr style="margin:20px 0;border:0;border-top:1px solid #edf2f7;">
+        <h4 style="margin-bottom:12px;"><i class="fas fa-database"></i> Old Valve Data Management</h4>
+        <button class="btn btn-danger" onclick="clearAllData()"><i class="fas fa-trash-alt"></i> Clear Old Valve Data</button>
+        <div id="dataMsg" class="status-msg" style="display:none;"></div>
+      </div>
+
+      <!-- NEW EXPORT -->
+      <div class="settings-card">
+        <h4><i class="fas fa-box-open"></i> New SC Valve — Export</h4>
+        <p style="font-size:13px;color:#6c757d;margin-bottom:14px;line-height:1.6;">
+          Download new SC valve stock &amp; issue records as PDF or Excel.
+        </p>
+        <div class="export-btns">
+          <button class="btn btn-danger" onclick="exportNewPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+          <button class="btn btn-success" onclick="exportNewExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        </div>
+        <hr style="margin:20px 0;border:0;border-top:1px solid #edf2f7;">
+        <h4 style="margin-bottom:12px;"><i class="fas fa-database"></i> New Valve Data Management</h4>
+        <button class="btn btn-danger" onclick="clearNewData()"><i class="fas fa-trash-alt"></i> Clear New Valve Data</button>
+        <div id="newDataMsg" class="status-msg" style="display:none;"></div>
+      </div>
+
+      <!-- CLOUD SYNC INFO -->
+      <div class="settings-card">
+        <h4><i class="fas fa-cloud-download-alt"></i> Cloud Sync Information (Firebase)</h4>
+        <div class="stock-preview" style="margin-bottom:14px;">
+          <div class="pv-item"><small>Status</small><b id="syncInfoStatus" style="font-size:14px;">Not Configured</b></div>
+          <div class="pv-item"><small>Last Sync</small><b id="syncInfoLast" style="font-size:14px;">—</b></div>
+        </div>
+        <div class="stock-preview">
+          <div class="pv-item"><small>Old Valve Records</small><b id="syncInfoOld" style="font-size:14px;">0</b></div>
+          <div class="pv-item"><small>New Valve Records</small><b id="syncInfoNew" style="font-size:14px;">0</b></div>
+          <div class="pv-item"><small>Users</small><b id="syncInfoUsers" style="font-size:14px;">0</b></div>
+        </div>
+        <p style="font-size:12px;color:#94a3b8;margin-top:14px;line-height:1.7;">
+          Click the <strong>sync indicator</strong> in the header at any time to pull the latest data
+          from the Cloud Database (Firebase). Admins can also push or pull manually from this panel.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ OLD TRANSACTION MODAL ============ -->
+<div class="modal-overlay" id="addTxModal">
+  <div class="modal-box">
+    <div class="modal-title"><i class="fas fa-plus-circle"></i> Add Transaction</div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="txDate">
+    </div>
+    <div class="form-group">
+      <label>Transaction Type</label>
+      <select id="txType" onchange="toggleOldDestField()">
+        <option value="received_from_shed">OLD SC Valve received from Shed</option>
+        <option value="received_from_others">OLD SC Valve received from Others</option>
+        <option value="received_from_damaged_cylinder">Extra Valve received from Damaged Cylinder</option>
+        <option value="issued_for_salvage">OLD SC Valve issued for Salvage</option>
+        <option value="accepted_salvage">Accepted Old Salvage Valve</option>
+        <option value="rejected_salvage">Rejected Old Salvage Valve</option>
+        <option value="accepted_salvage_issued">Accepted Old Salvage Valve Issued</option>
+      </select>
+    </div>
+
+    <div class="form-group dest-group" id="txDestGroup" style="display:none;">
+      <label id="txDestLabel"><i class="fas fa-warehouse"></i> Shed</label>
+      <select id="txDestination">
+        <option value="dpt">DPT Shed</option>
+        <option value="filling">Filling Shed</option>
+      </select>
+    </div>
+
+    <div class="form-group teal-group" id="txDetailsGroup" style="display:none;">
+      <label id="txDetailsLabel"><i class="fas fa-pen"></i> Details</label>
+      <textarea id="txDetails" rows="2" placeholder="Write details here..."></textarea>
+    </div>
+
+    <div class="info-banner" id="txInfoBanner" style="display:none;">
+      <i class="fas fa-info-circle"></i>
+      <span id="txInfoText"></span>
+    </div>
+    <div class="form-group">
+      <label>Quantity</label>
+      <input type="number" id="txQty" min="1" value="1">
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <input type="text" id="txDesc" placeholder="e.g. PO #123, location">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeAddTx()">Cancel</button>
+      <button class="btn btn-submit" onclick="saveTransaction()"><i class="fas fa-check"></i> Save</button>
+    </div>
+    <div id="txMsg" style="font-size:13px;margin-top:10px;color:var(--danger);font-weight:700;"></div>
+  </div>
+</div>
+
+<!-- ============ NEW TRANSACTION MODAL ============ -->
+<div class="modal-overlay" id="newTxModal">
+  <div class="modal-box">
+    <div class="modal-title"><i class="fas fa-box-open"></i> New SC Valve Transaction</div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="newTxDate">
+    </div>
+    <div class="form-group">
+      <label>Transaction Type</label>
+      <select id="newTxType" onchange="onNewTxTypeChange()">
+        <option value="new_received">New SC Valve Received at Store (＋ stock)</option>
+        <option value="new_issued">New SC Valve Issued (－ stock, auto deduct)</option>
+      </select>
+    </div>
+    <div class="form-group dest-group" id="newTxDestGroup" style="display:none;">
+      <label><i class="fas fa-warehouse"></i> Issued To (Shed)</label>
+      <select id="newTxDestination">
+        <option value="dpt">DPT Shed</option>
+        <option value="filling">Filling Shed</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Quantity</label>
+      <input type="number" id="newTxQty" min="1" value="1" oninput="updateNewTxPreview()">
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <input type="text" id="newTxDesc" placeholder="e.g. PO #123, site / department">
+    </div>
+    <div class="stock-preview" id="newTxPreview">
+      <div class="pv-item"><small>Current Stock at Store</small><b id="pvCurrent">0</b></div>
+      <div class="pv-arrow"><i class="fas fa-arrow-right"></i></div>
+      <div class="pv-item"><small>Stock After This Entry</small><b id="pvAfter">0</b></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeNewAddTx()">Cancel</button>
+      <button class="btn btn-submit" onclick="saveNewTransaction()"><i class="fas fa-check"></i> Save</button>
+    </div>
+    <div id="newTxMsg" style="font-size:13px;margin-top:10px;color:var(--danger);font-weight:700;"></div>
+  </div>
+</div>
+
+<!-- ============ USER MODAL (ADMIN) ============ -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal-box">
+    <div class="modal-title"><i class="fas fa-user-plus"></i> <span id="userModalTitle">Add User</span></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Login ID / Username *</label>
+        <input type="text" id="umUsername" placeholder="e.g. operator1">
+      </div>
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="text" id="umPassword" placeholder="Password">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Role</label>
+        <select id="umRole" onchange="onUserRoleChange()">
+          <option value="user">User (View Only)</option>
+          <option value="admin">Administrator (Full Access)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="umActive">
+          <option value="1">Active</option>
+          <option value="0">Disabled</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="umPermsWrap">
+      <label>Permissions (for User role)</label>
+      <div class="perm-grid">
+        <label class="perm-item"><input type="checkbox" id="pOld" checked> Old Valve Module</label>
+        <label class="perm-item"><input type="checkbox" id="pNew" checked> New Valve Module</label>
+        <label class="perm-item"><input type="checkbox" id="pPlant" checked> Plant Dashboard</label>
+        <label class="perm-item"><input type="checkbox" id="pSearch"> Search &amp; Reports</label>
+        <label class="perm-item"><input type="checkbox" id="pEdit"> Add / Delete Data</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeUserModal()">Cancel</button>
+      <button class="btn btn-submit" onclick="saveUser()"><i class="fas fa-check"></i> Save User</button>
+    </div>
+    <div id="umMsg" style="font-size:13px;margin-top:10px;color:var(--danger);font-weight:700;"></div>
+  </div>
+</div>
+
+<!-- ============ ACCOUNT MODAL ============ -->
+<div class="modal-overlay" id="accountModal">
+  <div class="modal-box" style="max-width:430px;">
+    <div class="modal-title"><i class="fas fa-user-cog"></i> My Account</div>
+    <div class="form-group">
+      <label>Login ID</label>
+      <input type="text" id="accUsername" disabled>
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <input type="text" id="accRole" disabled>
+    </div>
+    <div class="form-group">
+      <label>Current Password</label>
+      <input type="password" id="accCurPass" placeholder="Enter current password">
+    </div>
+    <div class="form-group">
+      <label>New Password</label>
+      <input type="password" id="accNewPass" placeholder="Enter new password">
+    </div>
+    <div class="form-group">
+      <label>Confirm New Password</label>
+      <input type="password" id="accConfPass" placeholder="Confirm new password">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeAccountModal()">Close</button>
+      <button class="btn btn-submit" onclick="saveAccountPassword()"><i class="fas fa-save"></i> Update</button>
+    </div>
+    <div id="accMsg" style="font-size:13px;margin-top:10px;font-weight:700;"></div>
+  </div>
+</div>
+
+<!-- ============ PASSWORD PROMPT MODAL ============ -->
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal-box" style="max-width:410px;">
+    <div class="modal-title"><i class="fas fa-lock"></i> Admin Authentication</div>
+    <p style="color:#6c757d;font-size:13.5px;margin-bottom:16px;">Enter your password to proceed.</p>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="adminPassInput" placeholder="Enter password">
+    </div>
+    <div id="passModalError" style="color:var(--danger);font-size:13px;margin-bottom:10px;font-weight:700;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closePasswordModal()">Cancel</button>
+      <button class="btn btn-submit" id="passwordModalConfirmBtn"><i class="fas fa-check"></i> Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTS & STORAGE KEYS
+   ============================================================ */
+const STORAGE_KEY      = 'sc_valve_data';
+const NEW_STORAGE_KEY  = 'sc_valve_new_data';
+const USERS_KEY        = 'sc_valve_users';
+const SESSION_KEY      = 'sc_valve_session';
+const SYNC_CFG_KEY     = 'sc_valve_fb_cfg';
+const SYNC_META_KEY    = 'sc_valve_sync_meta';
+
+let currentUser = null;
+let syncTimer   = null;
+
+/* ============================================================
+   DATA LAYER — OLD VALVE
+   ============================================================ */
+function getDefaultData(){ return { transactions: [] }; }
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === 'object' && Array.isArray(parsed.transactions)) return parsed;
+    }
+  }catch(_){}
+  return getDefaultData();
+}
+function saveData(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function getTransactions(){ return loadData().transactions || []; }
+function setTransactions(txs){ const d = loadData(); d.transactions = txs || []; saveData(d); }
+function addTransaction(tx){ const t = getTransactions(); t.push(tx); setTransactions(t); }
+function deleteTransaction(id){ setTransactions(getTransactions().filter(t => t.id !== id)); }
+
+/* ============================================================
+   DATA LAYER — NEW VALVE
+   ============================================================ */
+function getDefaultNewData(){ return { transactions: [] }; }
+
+function loadNewData(){
+  try{
+    const raw = localStorage.getItem(NEW_STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === 'object' && Array.isArray(parsed.transactions)) return parsed;
+    }
+  }catch(_){}
+  return getDefaultNewData();
+}
+function saveNewData(data){ localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(data)); }
+function getNewTransactions(){ return (loadNewData().transactions || []).filter(t => t.type !== 'new_returned'); }
+function setNewTransactions(txs){
+  const d = loadNewData();
+  d.transactions = (txs || []).filter(t => t.type !== 'new_returned');
+  saveNewData(d);
+}
+function addNewTransaction(tx){ const t = getNewTransactions(); t.push(tx); setNewTransactions(t); }
+function deleteNewTransaction(id){ setNewTransactions(getNewTransactions().filter(t => t.id !== id)); }
+
+/* ============================================================
+   DATA LAYER — USERS
+   ============================================================ */
+function defaultAdmin(){
+  return {
+    id:'u_admin_root',
+    username:'admin',
+    password:'admin123',
+    role:'admin',
+    active:true,
+    perms:{ viewOld:true, viewNew:true, viewPlant:true, viewSearch:true, canEdit:true },
+    createdAt:new Date().toISOString()
+  };
+}
+function getUsers(){
+  try{
+    const raw = localStorage.getItem(USERS_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed) && parsed.length) return parsed;
+    }
+  }catch(_){}
+  const d = [defaultAdmin()];
+  localStorage.setItem(USERS_KEY, JSON.stringify(d));
+  return d;
+}
+function saveUsers(users){
+  const list = (users && users.length) ? users : [defaultAdmin()];
+  localStorage.setItem(USERS_KEY, JSON.stringify(list));
+}
+
+/* ============================================================
+   SESSION
+   ============================================================ */
+function setSession(u){ sessionStorage.setItem(SESSION_KEY, JSON.stringify({ id:u.id, username:u.username, role:u.role })); }
+function clearSession(){ sessionStorage.removeItem(SESSION_KEY); }
+function getSession(){
+  try{ return JSON.parse(sessionStorage.getItem(SESSION_KEY)); }catch(_){ return null; }
+}
+
+/* ============================================================
+   PERMISSIONS
+   ============================================================ */
+function can(perm){
+  if(!currentUser) return false;
+  if(currentUser.role === 'admin') return true;
+  const p = currentUser.perms || {};
+  return !!p[perm];
+}
+function isAdmin(){ return currentUser && currentUser.role === 'admin'; }
+
+function refreshCurrentUser(){
+  if(!currentUser) return;
+  const u = getUsers().find(x => x.id === currentUser.id);
+  if(u) currentUser = u;
+}
+
+function applyPermissions(){
+  const admin = isAdmin();
+  const show = {
+    dashboard:      admin || can('viewOld'),
+    transactions:   admin || can('viewOld'),
+    newdashboard:   admin || can('viewNew'),
+    newtransactions:admin || can('viewNew'),
+    plantdashboard: admin || can('viewPlant'),
+    searchdashboard:admin || can('viewSearch'),
+    users:          admin,
+    settings:       admin
+  };
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const t = btn.dataset.tab;
+    btn.style.display = show[t] ? '' : 'none';
+  });
+
+  document.querySelectorAll('.edit-only').forEach(el => {
+    el.style.display = (admin || can('canEdit')) ? '' : 'none';
+  });
+}
+
+function firstAllowedTab(){
+  const order = ['dashboard','transactions','newdashboard','newtransactions','plantdashboard','searchdashboard','users','settings'];
+  for(const t of order){
+    const btn = document.querySelector('.tab-btn[data-tab="'+t+'"]');
+    if(btn && btn.style.display !== 'none') return t;
+  }
+  return 'dashboard';
+}
+
+/* ============================================================
+   CLOUD DATABASE SYNC (FIREBASE RTDB REST)
+   ============================================================ */
+function getSyncCfg(){
+  try{
+    const raw = localStorage.getItem(SYNC_CFG_KEY);
+    if(raw){
+      const c = JSON.parse(raw);
+      return { url: c.url || '', token: c.token || '', auto: c.auto !== false };
+    }
+  }catch(_){}
+  return { url:'', token:'', auto:true };
+}
+function setSyncCfg(cfg){ localStorage.setItem(SYNC_CFG_KEY, JSON.stringify(cfg)); }
+
+function getSyncMeta(){
+  try{ return JSON.parse(localStorage.getItem(SYNC_META_KEY)) || {}; }catch(_){ return {}; }
+}
+function setSyncMeta(m){ localStorage.setItem(SYNC_META_KEY, JSON.stringify(m)); }
+
+function buildEndpoint(){
+  const cfg = getSyncCfg();
+  if(!cfg.url) return null;
+  let base = cfg.url.trim().replace(/\/+$/,'');
+  if(!/^https?:\/\//i.test(base)) base = 'https://' + base;
+  if(!/\.json$/i.test(base)) base += '/scValveStore.json';
+  const auth = cfg.token ? ('?auth=' + encodeURIComponent(cfg.token)) : '';
+  return base + auth;
+}
+
+function setSyncStatus(state, detail){
+  const el = document.getElementById('syncIndicator');
+  if(!el) return;
+  const txt = el.querySelector('.sync-text');
+  const labels = {
+    unconfigured:'Not Configured',
+    syncing:'Syncing',
+    synced:'Synced',
+    error:'Sync Error'
+  };
+  el.className = 'sync-indicator ' + state;
+  txt.textContent = labels[state] || state;
+  el.title = detail || labels[state];
+
+  const infoStatus = document.getElementById('syncInfoStatus');
+  const infoLast   = document.getElementById('syncInfoLast');
+  if(infoStatus){
+    infoStatus.textContent = labels[state] || state;
+    infoStatus.style.color = state === 'synced' ? '#10b981' :
+                             state === 'error'  ? '#ef4444' :
+                             state === 'syncing'? '#0ea5e9' : '#94a3b8';
+  }
+  if(infoLast){
+    const meta = getSyncMeta();
+    infoLast.textContent = meta.lastSync ? new Date(meta.lastSync).toLocaleString() : '—';
+  }
+}
+
+function updateSyncCounters(){
+  const o = document.getElementById('syncInfoOld');
+  const n = document.getElementById('syncInfoNew');
+  const u = document.getElementById('syncInfoUsers');
+  if(o) o.textContent = getTransactions().length;
+  if(n) n.textContent = getNewTransactions().length;
+  if(u) u.textContent = getUsers().length;
+}
+
+function buildSyncPayload(){
+  return {
+    oldTransactions: getTransactions(),
+    newTransactions: getNewTransactions(),
+    users: getUsers(),
+    meta: {
+      lastUpdated: Date.now(),
+      updatedBy: currentUser ? currentUser.username : 'unknown',
+      app: 'Valve Data Management System'
+    }
+  };
+}
+
+async function pushToServer(showMsg){
+  const ep = buildEndpoint();
+  if(!ep){
+    setSyncStatus('unconfigured','Cloud Database not configured');
+    if(showMsg) showFbMsg('⚠️ Cloud Database Sync (Firebase) is not configured yet. Enter the database URL first.','error');
+    return false;
+  }
+  setSyncStatus('syncing','Uploading...');
+  try{
+    const res = await fetch(ep, {
+      method:'PUT',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify(buildSyncPayload())
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+    const meta = getSyncMeta();
+    meta.lastSync = Date.now();
+    meta.lastDir  = 'push';
+    setSyncMeta(meta);
+    setSyncStatus('synced','Uploaded at ' + new Date().toLocaleTimeString());
+    updateSyncCounters();
+    if(showMsg) showFbMsg('✅ Data uploaded to Cloud Database (Firebase) successfully.','success');
+    return true;
+  }catch(err){
+    setSyncStatus('error', err.message);
+    if(showMsg) showFbMsg('❌ Upload failed: ' + err.message,'error');
+    return false;
+  }
+}
+
+async function pullFromServer(showMsg, refresh){
+  const ep = buildEndpoint();
+  if(!ep){
+    setSyncStatus('unconfigured','Cloud Database not configured');
+    if(showMsg) showFbMsg('⚠️ Cloud Database Sync (Firebase) is not configured yet.','error');
+    return false;
+  }
+  setSyncStatus('syncing','Downloading...');
+  try{
+    const res = await fetch(ep, { method:'GET' });
+    if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+    const data = await res.json();
+
+    if(!data){
+      setSyncStatus('synced','Server empty — nothing to download');
+      if(showMsg) showFbMsg('ℹ️ Cloud Database has no data yet. Push your data first.','info');
+      return false;
+    }
+
+    if(Array.isArray(data.oldTransactions)) setTransactions(data.oldTransactions);
+    if(Array.isArray(data.newTransactions)) setNewTransactions(data.newTransactions);
+    if(Array.isArray(data.users) && data.users.length) saveUsers(data.users);
+
+    const meta = getSyncMeta();
+    meta.lastSync = Date.now();
+    meta.lastDir  = 'pull';
+    setSyncMeta(meta);
+
+    setSyncStatus('synced','Downloaded at ' + new Date().toLocaleTimeString());
+
+    if(refresh){
+      refreshCurrentUser();
+      applyPermissions();
+      updateHeaderUser();
+      refreshAll();
+    } else {
+      updateSyncCounters();
+    }
+    if(showMsg) showFbMsg('✅ Data downloaded from Cloud Database (Firebase) successfully.','success');
+    return true;
+  }catch(err){
+    setSyncStatus('error', err.message);
+    if(showMsg) showFbMsg('❌ Download failed: ' + err.message,'error');
+    return false;
+  }
+}
+
+function scheduleSync(){
+  const cfg = getSyncCfg();
+  if(!cfg.url || !cfg.auto) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => { pushToServer(false); }, 1400);
+}
+
+function handleSyncClick(){
+  const cfg = getSyncCfg();
+  if(!cfg.url){
+    if(isAdmin()){ switchTab('settings'); showFbMsg('ℹ️ Configure your Cloud Database (Firebase) URL below to enable sync.','info'); }
+    else showToast('<i class="fas fa-exclamation-triangle"></i> Cloud Database Sync is not configured.','#f59e0b');
+    return;
+  }
+  pullFromServer(false, true);
+}
+
+function saveFirebaseConfig(){
+  const url   = document.getElementById('fbUrl').value.trim();
+  const token = document.getElementById('fbToken').value.trim();
+  const auto  = document.getElementById('fbAuto').checked;
+
+  if(!url){ showFbMsg('❌ Please enter the Firebase database URL.','error'); return; }
+
+  setSyncCfg({ url, token, auto });
+  setSyncStatus('unconfigured','Configuration saved — run a test');
+  showFbMsg('✅ Cloud Database (Firebase) configuration saved. Click "Test Connection" to verify.','success');
+  showToast('<i class="fas fa-save"></i> Cloud Database configuration saved.');
+}
+
+async function testFirebaseConnection(){
+  const ep = buildEndpoint();
+  if(!ep){ showFbMsg('❌ Please enter and save a database URL first.','error'); return; }
+  showFbMsg('⏳ Testing connection...','info');
+  try{
+    const res = await fetch(ep, { method:'GET' });
+    if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+    showFbMsg('✅ Connection successful! Server responded correctly.','success');
+    setSyncStatus('synced','Connection OK');
+  }catch(err){
+    showFbMsg('❌ Connection failed: ' + err.message + ' — check the URL and database rules.','error');
+    setSyncStatus('error', err.message);
+  }
+}
+
+function clearFirebaseConfig(){
+  if(!confirm('Remove the Cloud Database (Firebase) configuration from this device?')) return;
+  localStorage.removeItem(SYNC_CFG_KEY);
+  localStorage.removeItem(SYNC_META_KEY);
+  document.getElementById('fbUrl').value = '';
+  document.getElementById('fbToken').value = '';
+  document.getElementById('fbAuto').checked = true;
+  setSyncStatus('unconfigured','Configuration removed');
+  showFbMsg('ℹ️ Cloud Database (Firebase) configuration removed from this device.','info');
+}
+
+function showFbMsg(text, type){
+  const el = document.getElementById('fbMsg');
+  if(!el) return;
+  el.style.display = 'block';
+  el.className = 'status-msg ' + type;
+  el.textContent = text;
+}
+
+function loadSyncConfigIntoForm(){
+  const cfg = getSyncCfg();
+  const u = document.getElementById('fbUrl');
+  const t = document.getElementById('fbToken');
+  const a = document.getElementById('fbAuto');
+  if(u) u.value = cfg.url || '';
+  if(t) t.value = cfg.token || '';
+  if(a) a.checked = cfg.auto !== false;
+
+  if(cfg.url){
+    const meta = getSyncMeta();
+    setSyncStatus(meta.lastSync ? 'synced' : 'unconfigured',
+                  meta.lastSync ? ('Last sync: ' + new Date(meta.lastSync).toLocaleString()) : 'Configured');
+  } else {
+    setSyncStatus('unconfigured','Not configured');
+  }
+  updateSyncCounters();
+}
+
+/* ============================================================
+   SHARED HELPERS
+   ============================================================ */
+function generateId(){ return Date.now().toString(36) + '_' + Math.random().toString(36).substr(2,6); }
+
+function formatDate(d){
+  if(!d) return '-';
+  const p = d.split('-');
+  if(p.length !== 3) return d;
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+
+function showToast(html, color){
+  color = color || '#28a745';
+  const toast = document.createElement('div');
+  toast.style.cssText =
+    'position:fixed;bottom:26px;right:26px;background:' + color +
+    ';color:#fff;padding:14px 22px;border-radius:12px;font-weight:700;font-size:13.5px;' +
+    'box-shadow:0 14px 34px rgba(0,0,0,.28);z-index:99999;transition:opacity .4s,transform .4s;' +
+    'transform:translateY(0);max-width:360px;';
+  toast.innerHTML = html;
+  document.body.appendChild(toast);
+  setTimeout(()=>{ toast.style.opacity='0'; toast.style.transform='translateY(14px)'; }, 2300);
+  setTimeout(()=> toast.remove(), 2900);
+}
+
+function getShedLabel(d){
+  if(d === 'dpt') return 'DPT Shed';
+  if(d === 'filling') return 'Filling Shed';
+  return '—';
+}
+function getShedBadgeClass(d){
+  if(d === 'dpt') return 'badge-purple';
+  if(d === 'filling') return 'badge-orange';
+  return 'badge-grey';
+}
+
+/* Types where the valve physically comes FROM the shed */
+function isShedReceipt(type){
+  return type === 'received_from_shed' || type === 'received_from_damaged_cylinder';
+}
+/* Types where the valve physically goes TO the shed */
+function isShedIssue(type){
+  return type === 'accepted_salvage_issued';
+}
+
+function renderShedCell(shed, type){
+  if(!shed) return '<span class="badge badge-grey">—</span>';
+  const isRec  = isShedReceipt(type);
+  const icon   = isRec ? 'fa-arrow-down' : 'fa-arrow-up';
+  const prefix = isRec ? 'From ' : 'To ';
+  return '<span class="badge ' + getShedBadgeClass(shed) + '">' +
+         '<i class="fas ' + icon + '" style="font-size:9px;opacity:.8;"></i> ' +
+         prefix + getShedLabel(shed) + '</span>';
+}
+
+/* Plain-text shed description used by exports */
+function shedText(t){
+  if(!t || !t.destination) return '-';
+  return (isShedReceipt(t.type) ? 'From ' : 'To ') + getShedLabel(t.destination);
+}
+
+function getCategoryLabel(type){
+  const map = {
+    'received_from_shed':'Received from Shed',
+    'received_from_others':'Received from Others',
+    'received_from_damaged_cylinder':'Extra from Damaged Cylinder',
+    'issued_for_salvage':'Issued for Salvage',
+    'accepted_salvage':'Accepted Salvage',
+    'rejected_salvage':'Rejected Salvage',
+    'accepted_salvage_issued':'Accepted Salvage Issued',
+    'new_received':'New Valve Received',
+    'new_issued':'New Valve Issued'
+  };
+  return map[type] || type;
+}
+function getBadgeClass(type){
+  const map = {
+    'received_from_shed':'badge-blue',
+    'received_from_others':'badge-teal',
+    'received_from_damaged_cylinder':'badge-rose',
+    'issued_for_salvage':'badge-yellow',
+    'accepted_salvage':'badge-green',
+    'rejected_salvage':'badge-red',
+    'accepted_salvage_issued':'badge-pink',
+    'new_received':'badge-sky',
+    'new_issued':'badge-orange'
+  };
+  return map[type] || 'badge-purple';
+}
+function getNewCategoryLabel(type){
+  const map = {
+    'new_received':'New SC Valve Received at Store',
+    'new_issued':'New SC Valve Issued'
+  };
+  return map[type] || type;
+}
+function getNewBadgeClass(type){
+  const map = { 'new_received':'badge-sky', 'new_issued':'badge-orange' };
+  return map[type] || 'badge-purple';
+}
+function getSourceBadgeClass(s){ return s === 'old' ? 'badge-indigo' : 'badge-sky'; }
+function getSourceBadgeLabel(s){ return s === 'old' ? 'Old Valve' : 'New Valve'; }
+
+/* ============================================================
+   STOCK CALCULATIONS — OLD
+   ============================================================ */
+function calcStocks(txs){
+  let sumRec=0, sumIss=0, sumAcc=0, sumRej=0, sumAccIss=0;
+  let sumOthers=0, sumDamaged=0;
+  let dptShed=0, fillingShed=0;
+
+  (txs||[]).forEach(t => {
+    const q = t.quantity || 0;
+    if(t.type === 'received_from_shed'){
+      sumRec += q;
+      if(t.destination === 'dpt') dptShed += q;
+      else if(t.destination === 'filling') fillingShed += q;
+    }
+    else if(t.type === 'received_from_others'){
+      /* Received from outside — adds to "Received from Shed" current stock.
+         No shed is affected. */
+      sumRec += q;
+      sumOthers += q;
+    }
+    else if(t.type === 'received_from_damaged_cylinder'){
+      /* Extra valve recovered from a damaged cylinder at a shed.
+         Adds to "Received from Shed" current stock and is tracked separately.
+         Consistent with "received_from_shed", it also feeds the shed figure. */
+      sumRec += q;
+      sumDamaged += q;
+      if(t.destination === 'dpt') dptShed += q;
+      else if(t.destination === 'filling') fillingShed += q;
+    }
+    else if(t.type === 'issued_for_salvage') sumIss += q;
+    else if(t.type === 'accepted_salvage') sumAcc += q;
+    else if(t.type === 'rejected_salvage') sumRej += q;
+    else if(t.type === 'accepted_salvage_issued'){
+      sumAccIss += q;
+      if(t.destination === 'dpt') dptShed += q;
+      else if(t.destination === 'filling') fillingShed += q;
+    }
+  });
+
+  const stockReceived = Math.max(0, sumRec - sumIss);
+  const stockIssued   = Math.max(0, sumIss - sumAcc - sumRej);
+  const stockAccepted = Math.max(0, sumAcc - sumAccIss);
+  const stockRejected = Math.max(0, sumRej);
+  const totalValves   = stockReceived + stockAccepted + stockRejected;
+
+  return { sumRec,sumIss,sumAcc,sumRej,sumAccIss,sumOthers,sumDamaged,
+           dptShed,fillingShed,
+           stockReceived,stockIssued,stockAccepted,stockRejected,totalValves,totalTx:(txs||[]).length };
+}
+
+/* ============================================================
+   STOCK CALCULATIONS — NEW
+   ============================================================ */
+function calcNewStocks(newTxs, oldTxs){
+  oldTxs = oldTxs || [];
+
+  let received = 0, issued = 0, dptIssued = 0, fillingIssued = 0;
+
+  newTxs.forEach(t => {
+    const q = t.quantity || 0;
+    if(t.type === 'new_received') received += q;
+    else if(t.type === 'new_issued'){
+      issued += q;
+      if(t.destination === 'dpt') dptIssued += q;
+      else if(t.destination === 'filling') fillingIssued += q;
+    }
+  });
+
+  let dptOldReceived=0, fillingOldReceived=0, dptAccIssued=0, fillingAccIssued=0;
+  oldTxs.forEach(t => {
+    const q = t.quantity || 0;
+    if(t.type === 'received_from_shed' || t.type === 'received_from_damaged_cylinder'){
+      if(t.destination === 'dpt') dptOldReceived += q;
+      else if(t.destination === 'filling') fillingOldReceived += q;
+    } else if(t.type === 'accepted_salvage_issued'){
+      if(t.destination === 'dpt') dptAccIssued += q;
+      else if(t.destination === 'filling') fillingAccIssued += q;
+    }
+  });
+
+  const dptShed     = dptIssued - dptOldReceived + dptAccIssued;
+  const fillingShed = fillingIssued - fillingOldReceived + fillingAccIssued;
+  const stockAtStore = Math.max(0, received - issued);
+
+  const now = new Date();
+  const ym  = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const todayStr = now.getFullYear() + '-' +
+                   String(now.getMonth()+1).padStart(2,'0') + '-' +
+                   String(now.getDate()).padStart(2,'0');
+
+  let issuedThisMonth = 0, issuedToday = 0;
+  newTxs.forEach(t => {
+    if(t.type !== 'new_issued') return;
+    if(t.date && t.date.substring(0,7) === ym) issuedThisMonth += (t.quantity || 0);
+    if(t.date === todayStr) issuedToday += (t.quantity || 0);
+  });
+
+  return {
+    received, issued, dptIssued, fillingIssued,
+    dptOldReceived, fillingOldReceived, dptAccIssued, fillingAccIssued,
+    dptShed, fillingShed, stockAtStore, issuedThisMonth, issuedToday,
+    todayLabel: now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
+    monthLabel: now.toLocaleString('default',{month:'long',year:'numeric'}),
+    totalTx: newTxs.length
+  };
+}
+
+/* ============================================================
+   TAB SWITCHING
+   ============================================================ */
+function switchTab(tabId){
+  const btn = document.querySelector('.tab-btn[data-tab="'+tabId+'"]');
+  if(btn && btn.style.display === 'none') return;
+  const content = document.getElementById('tab-' + tabId);
+  if(!content) return;
+
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+  content.classList.add('active');
+  if(btn) btn.classList.add('active');
+
+  if(tabId === 'dashboard') refreshDashboard();
+  if(tabId === 'transactions') renderAllTransactions();
+  if(tabId === 'newdashboard') refreshNewDashboard();
+  if(tabId === 'newtransactions') renderNewTransactions();
+  if(tabId === 'plantdashboard') refreshPlantDashboard();
+  if(tabId === 'searchdashboard'){ populateSearchCategoryOptions(); runSearchDashboard(); }
+  if(tabId === 'users') renderUsersTable();
+  if(tabId === 'settings'){ loadSyncConfigIntoForm(); updateSyncCounters(); }
+}
+
+/* ============================================================
+   LOGIN / LOGOUT
+   ============================================================ */
+function handleLogin(){
+  const u = (document.getElementById('loginUser').value || '').trim();
+  const p = document.getElementById('loginPassword').value || '';
+  const err = document.getElementById('loginError');
+
+  if(!u || !p){ err.textContent = 'Please enter both Login ID and Password.'; return; }
+
+  const found = getUsers().find(x =>
+    x.username.toLowerCase() === u.toLowerCase() && x.password === p
+  );
+
+  if(!found){ err.textContent = '❌ Invalid Login ID or Password.'; document.getElementById('loginPassword').value=''; return; }
+  if(found.active === false){ err.textContent = '⛔ This account has been disabled. Contact your administrator.'; return; }
+
+  currentUser = found;
+  setSession(found);
+  err.textContent = '';
+  enterApp();
+}
+
+function enterApp(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+
+  applyPermissions();
+  updateHeaderUser();
+  renderAdminSetupBanner();
+
+  const tab = firstAllowedTab();
+  switchTab(tab);
+  refreshAll();
+  loadSyncConfigIntoForm();
+
+  const cfg = getSyncCfg();
+  if(cfg.url){
+    setTimeout(() => { pullFromServer(false, true); }, 400);
+  }
+}
+
+function updateHeaderUser(){
+  const n = document.getElementById('headerUserName');
+  const r = document.getElementById('headerUserRole');
+  if(!currentUser) return;
+  n.textContent = currentUser.username;
+  r.textContent = currentUser.role === 'admin' ? 'admin' : 'user';
+}
+
+function renderAdminSetupBanner(){
+  const el = document.getElementById('adminSetupBanner');
+  if(!el) return;
+  const cfg = getSyncCfg();
+  if(isAdmin() && !cfg.url){
+    el.style.display = 'block';
+    el.innerHTML =
+      '<div class="info-banner warn" style="margin-bottom:18px;">' +
+      '<i class="fas fa-exclamation-triangle"></i>' +
+      '<span><strong>Cloud Database Sync (Firebase) is not configured.</strong> Go to ' +
+      '<a href="javascript:void(0)" onclick="switchTab(\'settings\')" style="color:#ea580c;font-weight:800;text-decoration:underline;">Settings &amp; Cloud Sync</a> ' +
+      'and enter your Firebase Database URL to start syncing valve data and users across all devices.</span>' +
+      '</div>';
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+}
+
+function handleLogout(){
+  clearSession();
+  currentUser = null;
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').textContent = '';
+  setTimeout(() => document.getElementById('loginUser').focus(), 300);
+}
+
+document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); });
+document.getElementById('loginUser').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('loginPassword').focus(); });
+
+/* ============================================================
+   REFRESH ALL
+   ============================================================ */
+function refreshAll(){
+  refreshDashboard();
+  renderAllTransactions(getTransactions());
+  refreshNewDashboard();
+  renderNewTransactions(getNewTransactions());
+  refreshPlantDashboard();
+  populateSearchCategoryOptions();
+  runSearchDashboard();
+  if(isAdmin()) renderUsersTable();
+  updateSyncCounters();
+}
+
+/* ============================================================
+   OLD VALVE DASHBOARD
+   ============================================================ */
+let monthlyChartInstance = null;
+let categoryChartInstance = null;
+
+function refreshDashboard(){
+  const txs = getTransactions();
+  const s = calcStocks(txs);
+
+  document.getElementById('kpiReceived').textContent   = s.stockReceived;
+  document.getElementById('kpiIssued').textContent     = s.stockIssued;
+  document.getElementById('kpiAccepted').textContent   = s.stockAccepted;
+  document.getElementById('kpiRejected').textContent   = s.stockRejected;
+  document.getElementById('kpiDptShed').textContent    = s.dptShed;
+  document.getElementById('kpiFillingShed').textContent= s.fillingShed;
+  document.getElementById('kpiDamagedCylinder').textContent = s.sumDamaged;
+  document.getElementById('kpiFromOthers').textContent      = s.sumOthers;
+  document.getElementById('kpiTotalTx').textContent    = s.totalTx;
+  document.getElementById('kpiTotalValves').textContent= s.totalValves;
+
+  const recent = txs.slice(-10).reverse();
+  const tbody = document.getElementById('recentTxBody');
+  if(recent.length === 0){
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i>No transactions yet</td></tr>';
+  } else {
+    tbody.innerHTML = recent.map(t => `
+      <tr>
+        <td>${formatDate(t.date)}</td>
+        <td><span class="badge ${getBadgeClass(t.type)}">${getCategoryLabel(t.type)}</span></td>
+        <td>${renderShedCell(t.destination, t.type)}</td>
+        <td>${t.category || getCategoryLabel(t.type)}</td>
+        <td><strong>${t.quantity}</strong></td>
+        <td>${t.description || '-'}</td>
+      </tr>`).join('');
+  }
+
+  buildMonthlyChart(txs);
+  buildCategoryChart(txs);
+}
+
+function buildMonthlyChart(txs){
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  if(monthlyChartInstance) monthlyChartInstance.destroy();
+
+  const months = {};
+  txs.forEach(t => {
+    if(!t.date) return;
+    const k = t.date.substring(0,7);
+    if(!months[k]) months[k] = { received:0, issued:0, damaged:0, others:0 };
+    const q = t.quantity || 0;
+    if(t.type === 'received_from_shed') months[k].received += q;
+    else if(t.type === 'received_from_others'){ months[k].received += q; months[k].others += q; }
+    else if(t.type === 'received_from_damaged_cylinder'){ months[k].received += q; months[k].damaged += q; }
+    else if(t.type === 'issued_for_salvage') months[k].issued += q;
+  });
+
+  const sorted = Object.keys(months).sort();
+  const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const labels = sorted.map(k => { const p = k.split('-'); return mNames[parseInt(p[1])-1] + ' ' + p[0]; });
+
+  monthlyChartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: labels.length ? labels : ['No Data'],
+      datasets:[
+        { label:'Received (all sources)', data: labels.length ? sorted.map(k=>months[k].received) : [0],
+          backgroundColor:'rgba(45,124,246,.72)', borderColor:'#2d7cf6', borderWidth:2, borderRadius:6, maxBarThickness:38 },
+        { label:'Issued for Salvage', data: labels.length ? sorted.map(k=>months[k].issued) : [0],
+          backgroundColor:'rgba(245,158,11,.72)', borderColor:'#f59e0b', borderWidth:2, borderRadius:6, maxBarThickness:38 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ position:'top', labels:{ boxWidth:12, padding:14, font:{ size:11, weight:'600' } } } },
+      scales:{
+        y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } }, grid:{ color:'#f1f5f9' } },
+        x:{ ticks:{ font:{ size:10 } }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+function buildCategoryChart(txs){
+  const ctx = document.getElementById('categoryChart').getContext('2d');
+  if(categoryChartInstance) categoryChartInstance.destroy();
+
+  const s = calcStocks(txs);
+  const data = [s.stockReceived, s.stockIssued, s.stockAccepted, s.stockRejected,
+                s.sumDamaged, s.sumOthers];
+
+  if(data.every(v => v === 0)){
+    categoryChartInstance = new Chart(ctx, {
+      type:'doughnut',
+      data:{ labels:['No Data'], datasets:[{ data:[1], backgroundColor:['#e9edf2'], borderWidth:0 }] },
+      options:{ responsive:true, plugins:{ legend:{ display:false } } }
+    });
+    return;
+  }
+
+  categoryChartInstance = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Received from Shed','Issued for Salvage','Accepted Salvage','Rejected Salvage',
+              'Extra from Damaged Cylinder','Received from Others'],
+      datasets:[{ data,
+        backgroundColor:['#2d7cf6','#f59e0b','#22c55e','#ef4444','#14b8a6','#f43f5e'],
+        borderWidth:3, borderColor:'#fff' }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, padding:11, font:{ size:11, weight:'600' } } } },
+      cutout:'62%'
+    }
+  });
+}
+
+/* ============================================================
+   OLD VALVE TRANSACTIONS
+   ============================================================ */
+function renderAllTransactions(filtered){
+  const txs = filtered || getTransactions();
+  const tbody = document.getElementById('allTxBody');
+  const showActions = isAdmin() || can('canEdit');
+
+  if(txs.length === 0){
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i>No transactions found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = [...txs].reverse().map(t => `
+    <tr>
+      <td>${formatDate(t.date)}</td>
+      <td><span class="badge ${getBadgeClass(t.type)}">${getCategoryLabel(t.type)}</span></td>
+      <td>${renderShedCell(t.destination, t.type)}</td>
+      <td>${t.category || getCategoryLabel(t.type)}</td>
+      <td><strong>${t.quantity}</strong></td>
+      <td>${t.description || '-'}</td>
+      ${showActions ? `<td class="edit-only">
+        <button class="icon-btn del" onclick="deleteTxWithAuth('${t.id}')" title="Delete">
+          <i class="fas fa-trash"></i>
+        </button></td>` : ''}
+    </tr>`).join('');
+}
+
+function applySearch(){
+  const from = document.getElementById('searchDateFrom').value;
+  const to   = document.getElementById('searchDateTo').value;
+  let txs = getTransactions();
+  if(from) txs = txs.filter(t => t.date >= from);
+  if(to)   txs = txs.filter(t => t.date <= to);
+  renderAllTransactions(txs);
+}
+function clearSearch(){
+  document.getElementById('searchDateFrom').value = '';
+  document.getElementById('searchDateTo').value = '';
+  renderAllTransactions(getTransactions());
+}
+
+/* ============================================================
+   OLD VALVE — ADD TRANSACTION
+   ============================================================ */
+function toggleOldDestField(){
+  const type = document.getElementById('txType').value;
+
+  const showDest = (type === 'received_from_shed' ||
+                    type === 'accepted_salvage_issued' ||
+                    type === 'received_from_damaged_cylinder');
+  const showDet  = (type === 'received_from_others' ||
+                    type === 'received_from_damaged_cylinder');
+
+  document.getElementById('txDestGroup').style.display    = showDest ? 'block' : 'none';
+  document.getElementById('txDetailsGroup').style.display = showDet  ? 'block' : 'none';
+
+  const lbl      = document.getElementById('txDestLabel');
+  const detLbl   = document.getElementById('txDetailsLabel');
+  const detInput = document.getElementById('txDetails');
+  const banner   = document.getElementById('txInfoBanner');
+  const bTxt     = document.getElementById('txInfoText');
+
+  if(type === 'received_from_shed'){
+    lbl.innerHTML = '<i class="fas fa-warehouse"></i> Received From Shed';
+    banner.style.display = 'flex';
+    bTxt.innerHTML = 'This quantity will be <strong>added</strong> to "Received from Shed" stock, and <strong>deducted</strong> from the matching "New Valve Dashboard → Shed Stock".';
+  }
+  else if(type === 'received_from_others'){
+    detLbl.innerHTML = '<i class="fas fa-pen"></i> Received From (Source / Party / Details)';
+    detInput.placeholder = 'e.g. Received from XYZ contractor, Gate Pass No. 1234, Returned from site...';
+    banner.style.display = 'flex';
+    bTxt.innerHTML = 'This quantity will be <strong>added</strong> to the <strong>"Received from Shed" current stock</strong> on the Old Valve Dashboard and tracked separately as <strong>"Received from Others"</strong>. No shed stock is affected.';
+  }
+  else if(type === 'received_from_damaged_cylinder'){
+    lbl.innerHTML = '<i class="fas fa-warehouse"></i> Damaged Cylinder Located At (Shed)';
+    detLbl.innerHTML = '<i class="fas fa-pen"></i> Cylinder No. / Damage Details';
+    detInput.placeholder = 'e.g. Cylinder No. 12345 — damaged at DPT shed, valve recovered...';
+    banner.style.display = 'flex';
+    bTxt.innerHTML = 'This quantity will be <strong>added</strong> to the <strong>"Received from Shed" current stock</strong> and shown separately as <strong>"Extra Valve from Damaged Cylinder"</strong>. It will also be <strong>deducted</strong> from the selected shed\'s stock on the New Valve Dashboard.';
+  }
+  else if(type === 'accepted_salvage_issued'){
+    lbl.innerHTML = '<i class="fas fa-warehouse"></i> Issued To (Shed)';
+    banner.style.display = 'flex';
+    bTxt.innerHTML = 'This quantity will be <strong>added</strong> to the matching "Shed Stock" on the Old Valve Dashboard AND <strong>also added</strong> to the "New Valve Dashboard → Shed Stock".';
+  }
+  else {
+    banner.style.display = 'none';
+  }
+}
+
+function openAddTx(){
+  if(!(isAdmin() || can('canEdit'))){ showToast('<i class="fas fa-ban"></i> You do not have edit permission.','#dc3545'); return; }
+  document.getElementById('addTxModal').classList.add('open');
+  document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('txQty').value = 1;
+  document.getElementById('txDesc').value = '';
+  document.getElementById('txDetails').value = '';
+  document.getElementById('txMsg').textContent = '';
+  document.getElementById('txType').value = 'received_from_shed';
+  document.getElementById('txDestination').value = 'dpt';
+  toggleOldDestField();
+}
+function closeAddTx(){ document.getElementById('addTxModal').classList.remove('open'); }
+
+function saveTransaction(){
+  if(!(isAdmin() || can('canEdit'))){ showToast('<i class="fas fa-ban"></i> Permission denied.','#dc3545'); return; }
+
+  const date = document.getElementById('txDate').value;
+  const type = document.getElementById('txType').value;
+  const qty  = parseInt(document.getElementById('txQty').value) || 0;
+  let   desc = document.getElementById('txDesc').value.trim();
+  const details = (document.getElementById('txDetails').value || '').trim();
+  const destination = document.getElementById('txDestination').value;
+  const msg  = document.getElementById('txMsg');
+
+  if(!date){ msg.textContent = 'Please select a date.'; return; }
+  if(qty <= 0){ msg.textContent = 'Quantity must be greater than 0.'; return; }
+
+  /* Merge the free-text details box into the description so it is
+     searchable and appears in every report / export. */
+  if(details) desc = desc ? (details + ' — ' + desc) : details;
+
+  const s = calcStocks(getTransactions());
+
+  if(type === 'issued_for_salvage' && qty > s.stockReceived){
+    msg.textContent = '⚠️ Only ' + s.stockReceived + ' available in "Received from Shed".'; return;
+  }
+  if(type === 'accepted_salvage' && qty > s.stockIssued){
+    msg.textContent = '⚠️ Only ' + s.stockIssued + ' available in "Issued for Salvage".'; return;
+  }
+  if(type === 'rejected_salvage' && qty > s.stockIssued){
+    msg.textContent = '⚠️ Only ' + s.stockIssued + ' available in "Issued for Salvage".'; return;
+  }
+  if(type === 'accepted_salvage_issued' && qty > s.stockAccepted){
+    msg.textContent = '⚠️ Only ' + s.stockAccepted + ' available in "Accepted Salvage".'; return;
+  }
+
+  const tx = {
+    id: generateId(),
+    date, type,
+    quantity: qty,
+    description: desc || '',
+    details: details || '',
+    category: getCategoryLabel(type),
+    timestamp: Date.now(),
+    createdBy: currentUser ? currentUser.username : 'unknown'
+  };
+  if(type === 'accepted_salvage_issued' ||
+     type === 'received_from_shed' ||
+     type === 'received_from_damaged_cylinder'){
+    tx.destination = destination;
+  }
+
+  addTransaction(tx);
+  closeAddTx();
+  refreshAll();
+  scheduleSync();
+
+  let toastMsg = '<i class="fas fa-check-circle"></i> Transaction added!';
+  if(type === 'accepted_salvage_issued'){
+    toastMsg = '<i class="fas fa-check-circle"></i> Issued ' + qty + ' to ' + getShedLabel(destination) + ' — added to New Valve shed stock.';
+  } else if(type === 'received_from_shed'){
+    toastMsg = '<i class="fas fa-check-circle"></i> Received ' + qty + ' from ' + getShedLabel(destination) + ' — New Valve shed stock reduced.';
+  } else if(type === 'received_from_others'){
+    toastMsg = '<i class="fas fa-hand-holding-heart"></i> ' + qty + ' valve(s) received from Others — added to "Received from Shed" stock.';
+  } else if(type === 'received_from_damaged_cylinder'){
+    toastMsg = '<i class="fas fa-recycle"></i> ' + qty + ' extra valve(s) received from Damaged Cylinder (' + getShedLabel(destination) + ') — added to "Received from Shed" stock.';
+  }
+  showToast(toastMsg);
+}
+
+/* ============================================================
+   NEW VALVE DASHBOARD
+   ============================================================ */
+let newMonthlyChartInstance = null;
+let newCategoryChartInstance = null;
+
+function refreshNewDashboard(){
+  const newTxs = getNewTransactions();
+  const oldTxs = getTransactions();
+  const s = calcNewStocks(newTxs, oldTxs);
+
+  const dptEl  = document.getElementById('kpiNewDptShed');
+  const fillEl = document.getElementById('kpiNewFillingShed');
+
+  dptEl.textContent  = s.dptShed;
+  fillEl.textContent = s.fillingShed;
+  dptEl.classList.toggle('neg', s.dptShed < 0);
+  fillEl.classList.toggle('neg', s.fillingShed < 0);
+
+  document.getElementById('kpiNewStock').textContent        = s.stockAtStore;
+  document.getElementById('kpiNewIssued').textContent       = s.issued;
+  document.getElementById('kpiNewReceived').textContent     = s.received;
+  document.getElementById('kpiNewIssuedToday').textContent  = s.issuedToday;
+  document.getElementById('kpiNewIssuedTodayLabel').textContent = s.todayLabel;
+  document.getElementById('kpiNewIssuedMonth').textContent  = s.issuedThisMonth;
+  document.getElementById('kpiNewIssuedMonthLabel').textContent = s.monthLabel;
+  document.getElementById('kpiNewTotalTx').textContent      = s.totalTx;
+
+  const recent = newTxs.slice(-10).reverse();
+  const balMap = buildNewBalanceMap();
+  const tbody  = document.getElementById('newRecentTxBody');
+
+  if(recent.length === 0){
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i>No new valve transactions yet</td></tr>';
+  } else {
+    tbody.innerHTML = recent.map(t => `
+      <tr>
+        <td>${formatDate(t.date)}</td>
+        <td><span class="badge ${getNewBadgeClass(t.type)}">${getNewCategoryLabel(t.type)}</span></td>
+        <td>${renderShedCell(t.destination, t.type)}</td>
+        <td><strong>${t.quantity}</strong></td>
+        <td><strong style="color:#0d2b5e;">${balMap[t.id] !== undefined ? balMap[t.id] : '-'}</strong></td>
+        <td>${t.description || '-'}</td>
+      </tr>`).join('');
+  }
+
+  buildNewMonthlyChart(newTxs);
+  buildNewCategoryChart(newTxs, oldTxs);
+}
+
+function buildNewMonthlyChart(txs){
+  const ctx = document.getElementById('newMonthlyChart').getContext('2d');
+  if(newMonthlyChartInstance) newMonthlyChartInstance.destroy();
+
+  const months = {};
+  txs.forEach(t => {
+    if(!t.date) return;
+    const k = t.date.substring(0,7);
+    if(!months[k]) months[k] = { received:0, issued:0 };
+    const q = t.quantity || 0;
+    if(t.type === 'new_received') months[k].received += q;
+    else if(t.type === 'new_issued') months[k].issued += q;
+  });
+
+  const sorted = Object.keys(months).sort();
+  const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const labels = sorted.map(k => { const p = k.split('-'); return mNames[parseInt(p[1])-1] + ' ' + p[0]; });
+
+  newMonthlyChartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: labels.length ? labels : ['No Data'],
+      datasets:[
+        { label:'New SC Valve Received', data: labels.length ? sorted.map(k=>months[k].received) : [0],
+          backgroundColor:'rgba(14,165,233,.72)', borderColor:'#0ea5e9', borderWidth:2, borderRadius:6, maxBarThickness:38 },
+        { label:'New SC Valve Issued', data: labels.length ? sorted.map(k=>months[k].issued) : [0],
+          backgroundColor:'rgba(249,115,22,.72)', borderColor:'#f97316', borderWidth:2, borderRadius:6, maxBarThickness:38 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ position:'top', labels:{ boxWidth:12, padding:14, font:{ size:11, weight:'600' } } } },
+      scales:{
+        y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } }, grid:{ color:'#f1f5f9' } },
+        x:{ ticks:{ font:{ size:10 } }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+function buildNewCategoryChart(newTxs, oldTxs){
+  const ctx = document.getElementById('newCategoryChart').getContext('2d');
+  if(newCategoryChartInstance) newCategoryChartInstance.destroy();
+
+  const s = calcNewStocks(newTxs, oldTxs);
+  const data = [Math.max(0,s.stockAtStore), Math.max(0,s.dptShed), Math.max(0,s.fillingShed)];
+
+  if(data.every(v => v === 0)){
+    newCategoryChartInstance = new Chart(ctx, {
+      type:'doughnut',
+      data:{ labels:['No Data'], datasets:[{ data:[1], backgroundColor:['#e9edf2'], borderWidth:0 }] },
+      options:{ responsive:true, plugins:{ legend:{ display:false } } }
+    });
+    return;
+  }
+
+  newCategoryChartInstance = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Stock at Store','DPT Shed','Filling Shed'],
+      datasets:[{ data, backgroundColor:['#0ea5e9','#8b5cf6','#ec4899'], borderWidth:3, borderColor:'#fff' }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, padding:11, font:{ size:11, weight:'600' } } } },
+      cutout:'62%'
+    }
+  });
+}
+
+function buildNewBalanceMap(){
+  const all = [...getNewTransactions()].sort((a,b) => {
+    const ka = (a.date || '') + String(a.timestamp || 0);
+    const kb = (b.date || '') + String(b.timestamp || 0);
+    return ka > kb ? 1 : (ka < kb ? -1 : 0);
+  });
+  const map = {};
+  let bal = 0;
+  all.forEach(t => {
+    const q = t.quantity || 0;
+    if(t.type === 'new_received') bal += q;
+    else if(t.type === 'new_issued') bal -= q;
+    map[t.id] = bal;
+  });
+  return map;
+}
+
+/* ============================================================
+   NEW VALVE TRANSACTIONS
+   ============================================================ */
+function renderNewTransactions(filtered){
+  const txs = filtered || getNewTransactions();
+  const tbody = document.getElementById('newAllTxBody');
+  const balMap = buildNewBalanceMap();
+  const showActions = isAdmin() || can('canEdit');
+
+  if(txs.length === 0){
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i>No transactions found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = [...txs].reverse().map(t => `
+    <tr>
+      <td>${formatDate(t.date)}</td>
+      <td><span class="badge ${getNewBadgeClass(t.type)}">${getNewCategoryLabel(t.type)}</span></td>
+      <td>${renderShedCell(t.destination, t.type)}</td>
+      <td><strong>${t.quantity}</strong></td>
+      <td><strong style="color:#0d2b5e;">${balMap[t.id] !== undefined ? balMap[t.id] : '-'}</strong></td>
+      <td>${t.description || '-'}</td>
+      ${showActions ? `<td class="edit-only">
+        <button class="icon-btn del" onclick="deleteNewTxWithAuth('${t.id}')" title="Delete">
+          <i class="fas fa-trash"></i>
+        </button></td>` : ''}
+    </tr>`).join('');
+}
+
+function applyNewSearch(){
+  const from = document.getElementById('newSearchDateFrom').value;
+  const to   = document.getElementById('newSearchDateTo').value;
+  let txs = getNewTransactions();
+  if(from) txs = txs.filter(t => t.date >= from);
+  if(to)   txs = txs.filter(t => t.date <= to);
+  renderNewTransactions(txs);
+}
+function clearNewSearch(){
+  document.getElementById('newSearchDateFrom').value = '';
+  document.getElementById('newSearchDateTo').value = '';
+  renderNewTransactions(getNewTransactions());
+}
+
+/* ============================================================
+   NEW VALVE — ADD TRANSACTION
+   ============================================================ */
+function onNewTxTypeChange(){ toggleNewDestField(); updateNewTxPreview(); }
+
+function toggleNewDestField(){
+  const type = document.getElementById('newTxType').value;
+  document.getElementById('newTxDestGroup').style.display = (type === 'new_issued') ? 'block' : 'none';
+}
+
+function openNewAddTx(defaultType){
+  if(!(isAdmin() || can('canEdit'))){ showToast('<i class="fas fa-ban"></i> You do not have edit permission.','#dc3545'); return; }
+  document.getElementById('newTxModal').classList.add('open');
+  document.getElementById('newTxDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('newTxQty').value = 1;
+  document.getElementById('newTxDesc').value = '';
+  document.getElementById('newTxMsg').textContent = '';
+  document.getElementById('newTxType').value = defaultType || 'new_issued';
+  document.getElementById('newTxDestination').value = 'dpt';
+  toggleNewDestField();
+  updateNewTxPreview();
+}
+function closeNewAddTx(){ document.getElementById('newTxModal').classList.remove('open'); }
+
+function updateNewTxPreview(){
+  const s = calcNewStocks(getNewTransactions(), getTransactions());
+  const type = document.getElementById('newTxType').value;
+  const qty = parseInt(document.getElementById('newTxQty').value) || 0;
+
+  let after = s.stockAtStore;
+  if(type === 'new_received') after = s.stockAtStore + qty;
+  else if(type === 'new_issued') after = s.stockAtStore - qty;
+
+  const curEl = document.getElementById('pvCurrent');
+  const aftEl = document.getElementById('pvAfter');
+  curEl.textContent = s.stockAtStore;
+  aftEl.textContent = after;
+  aftEl.className = after < 0 ? 'neg' : (after > s.stockAtStore ? 'pos' : '');
+}
+
+function saveNewTransaction(){
+  if(!(isAdmin() || can('canEdit'))){ showToast('<i class="fas fa-ban"></i> Permission denied.','#dc3545'); return; }
+
+  const date = document.getElementById('newTxDate').value;
+  const type = document.getElementById('newTxType').value;
+  const qty  = parseInt(document.getElementById('newTxQty').value) || 0;
+  const desc = document.getElementById('newTxDesc').value.trim();
+  const destination = document.getElementById('newTxDestination').value;
+  const msg  = document.getElementById('newTxMsg');
+
+  if(!date){ msg.textContent = 'Please select a date.'; return; }
+  if(qty <= 0){ msg.textContent = 'Quantity must be greater than 0.'; return; }
+
+  const s = calcNewStocks(getNewTransactions(), getTransactions());
+
+  if(type === 'new_issued' && qty > s.stockAtStore){
+    msg.textContent = '⚠️ Only ' + s.stockAtStore + ' valve(s) available in "New SC Valve Stock at Store".'; return;
+  }
+
+  const tx = {
+    id: generateId(),
+    date, type,
+    quantity: qty,
+    description: desc || '',
+    category: getNewCategoryLabel(type),
+    timestamp: Date.now(),
+    createdBy: currentUser ? currentUser.username : 'unknown'
+  };
+  if(type === 'new_issued') tx.destination = destination;
+
+  addNewTransaction(tx);
+  closeNewAddTx();
+  refreshAll();
+  scheduleSync();
+
+  let toastMsg = '<i class="fas fa-check-circle"></i> ' + getNewCategoryLabel(type) + ' × ' + qty + ' saved!';
+  if(type === 'new_issued') toastMsg = '<i class="fas fa-check-circle"></i> Issued ' + qty + ' to ' + getShedLabel(destination) + '!';
+  showToast(toastMsg, '#0ea5e9');
+}
+
+/* ============================================================
+   PLANT DASHBOARD
+   ============================================================ */
+let plantChartInstance = null;
+
+function refreshPlantDashboard(){
+  const oldTxs = getTransactions();
+  const newTxs = getNewTransactions();
+  const oldStats = calcStocks(oldTxs);
+  const newStats = calcNewStocks(newTxs, oldTxs);
+
+  const total = oldStats.totalValves + oldStats.stockIssued +
+                newStats.dptShed + newStats.fillingShed + newStats.stockAtStore;
+
+  document.getElementById('kpiPlantTotal').textContent       = total;
+  document.getElementById('kpiPlantOldStore').textContent    = oldStats.totalValves;
+  document.getElementById('kpiPlantOldIssued').textContent   = oldStats.stockIssued;
+  document.getElementById('kpiPlantDptShed').textContent     = newStats.dptShed;
+  document.getElementById('kpiPlantFillingShed').textContent = newStats.fillingShed;
+  document.getElementById('kpiPlantNewStock').textContent    = newStats.stockAtStore;
+
+  document.getElementById('kpiPlantDptShed').classList.toggle('neg', newStats.dptShed < 0);
+  document.getElementById('kpiPlantFillingShed').classList.toggle('neg', newStats.fillingShed < 0);
+
+  buildPlantChart(oldStats, newStats);
+  buildPlantSummaryTable(oldStats, newStats);
+}
+
+function buildPlantChart(oldStats, newStats){
+  const ctx = document.getElementById('plantBreakdownChart').getContext('2d');
+  if(plantChartInstance) plantChartInstance.destroy();
+
+  const labels = ['Old Store','Old Issued','DPT Shed','Filling Shed','New Store'];
+  const data = [oldStats.totalValves, oldStats.stockIssued, newStats.dptShed, newStats.fillingShed, newStats.stockAtStore];
+  const colors = ['#2d7cf6','#f59e0b','#8b5cf6','#ec4899','#0ea5e9'];
+
+  plantChartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Valves', data,
+        backgroundColor: colors.map(c => c + 'cc'),
+        borderColor: colors, borderWidth:2, borderRadius:7, maxBarThickness:34
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c => c.parsed.x + ' valves' } } },
+      scales:{
+        x:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } }, grid:{ color:'#f1f5f9' } },
+        y:{ ticks:{ font:{ size:11, weight:'600' } }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+function buildPlantSummaryTable(oldStats, newStats){
+  const tbody = document.getElementById('plantSummaryBody');
+  const rows = [
+    { name:'Total Valve in Store (Old)',        source:'Old Valve Dashboard', value:oldStats.totalValves,  color:'#2d7cf6' },
+    { name:'Issued for Salvage (Old)',          source:'Old Valve Dashboard', value:oldStats.stockIssued,  color:'#f59e0b' },
+    { name:'Extra from Damaged Cylinder (Old)', source:'Old Valve Dashboard', value:oldStats.sumDamaged,   color:'#14b8a6' },
+    { name:'Received from Others (Old)',        source:'Old Valve Dashboard', value:oldStats.sumOthers,    color:'#f43f5e' },
+    { name:'DPT Shed Stock (New)',              source:'New Valve Dashboard', value:newStats.dptShed,      color:'#8b5cf6' },
+    { name:'Filling Shed Stock (New)',          source:'New Valve Dashboard', value:newStats.fillingShed,  color:'#ec4899' },
+    { name:'New SC Valve Stock (New)',          source:'New Valve Dashboard', value:newStats.stockAtStore, color:'#0ea5e9' }
+  ];
+  /* Damaged-cylinder and "from others" receipts are already counted inside
+     "Total Valve in Store (Old)", so they are excluded from the grand total. */
+  const total = oldStats.totalValves + oldStats.stockIssued +
+                newStats.dptShed + newStats.fillingShed + newStats.stockAtStore;
+
+  let html = rows.map(r => `
+    <tr>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${r.color};margin-right:9px;"></span>${r.name}</td>
+      <td style="color:#6c757d;font-size:12.5px;">${r.source}</td>
+      <td style="text-align:right;font-weight:800;color:${r.value < 0 ? 'var(--danger)' : 'var(--primary)'};">${r.value}</td>
+    </tr>`).join('');
+
+  html += `
+    <tr style="border-top:2px solid #e9edf2;background:#f8fafc;">
+      <td style="font-weight:800;font-size:14.5px;">
+        <i class="fas fa-industry" style="color:#10b981;margin-right:9px;"></i>Total Valve Available in Plant
+      </td>
+      <td></td>
+      <td style="text-align:right;font-weight:800;font-size:18px;color:#10b981;">${total}</td>
+    </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+/* ============================================================
+   SEARCH & REPORTS
+   ============================================================ */
+let srchCategoryChartInstance = null;
+let srchMonthlyChartInstance = null;
+let lastSearchResults = [];
+
+const OLD_CATEGORIES = [
+  { v:'received_from_shed',             l:'Received from Shed (Old)' },
+  { v:'received_from_others',           l:'Received from Others (Old)' },
+  { v:'received_from_damaged_cylinder', l:'Extra from Damaged Cylinder (Old)' },
+  { v:'issued_for_salvage',             l:'Issued for Salvage (Old)' },
+  { v:'accepted_salvage',               l:'Accepted Salvage (Old)' },
+  { v:'rejected_salvage',               l:'Rejected Salvage (Old)' },
+  { v:'accepted_salvage_issued',        l:'Accepted Salvage Issued (Old)' }
+];
+const NEW_CATEGORIES = [
+  { v:'new_received', l:'New Valve Received (New)' },
+  { v:'new_issued',   l:'New Valve Issued (New)' }
+];
+
+function populateSearchCategoryOptions(){
+  const srcEl = document.getElementById('srchSource');
+  const sel = document.getElementById('srchCategory');
+  if(!sel || !srcEl) return;
+  const src = srcEl.value;
+  const prev = sel.value;
+
+  let opts = [{ v:'all', l:'All Categories' }];
+  if(src === 'all') opts = opts.concat(OLD_CATEGORIES, NEW_CATEGORIES);
+  else if(src === 'old') opts = opts.concat(OLD_CATEGORIES);
+  else opts = opts.concat(NEW_CATEGORIES);
+
+  sel.innerHTML = opts.map(o => '<option value="' + o.v + '">' + o.l + '</option>').join('');
+  if(opts.some(o => o.v === prev)) sel.value = prev;
+}
+
+function onSearchSourceChange(){ populateSearchCategoryOptions(); runSearchDashboard(); }
+
+function applyQuickRange(range, btn){
+  document.querySelectorAll('.quick-ranges .pill').forEach(p => p.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+
+  const from = document.getElementById('srchDateFrom');
+  const to   = document.getElementById('srchDateTo');
+  const now  = new Date();
+  const fmt  = d => d.toISOString().split('T')[0];
+
+  if(range === 'today'){ from.value = fmt(now); to.value = fmt(now); }
+  else if(range === '7d'){ const d = new Date(now); d.setDate(d.getDate()-6); from.value = fmt(d); to.value = fmt(now); }
+  else if(range === '30d'){ const d = new Date(now); d.setDate(d.getDate()-29); from.value = fmt(d); to.value = fmt(now); }
+  else if(range === 'mtd'){ from.value = fmt(new Date(now.getFullYear(), now.getMonth(), 1)); to.value = fmt(now); }
+  else if(range === 'ytd'){ from.value = fmt(new Date(now.getFullYear(), 0, 1)); to.value = fmt(now); }
+  else { from.value = ''; to.value = ''; }
+
+  runSearchDashboard();
+}
+
+function getCombinedTransactions(){
+  const oldTxs = getTransactions().map(t => Object.assign({}, t, { _source:'old' }));
+  const newTxs = getNewTransactions().map(t => Object.assign({}, t, { _source:'new' }));
+  return oldTxs.concat(newTxs);
+}
+
+function getSearchFilters(){
+  return {
+    dateFrom: document.getElementById('srchDateFrom').value,
+    dateTo:   document.getElementById('srchDateTo').value,
+    source:   document.getElementById('srchSource').value,
+    category: document.getElementById('srchCategory').value,
+    shed:     document.getElementById('srchShed').value,
+    text:     (document.getElementById('srchText').value || '').trim().toLowerCase()
+  };
+}
+
+function filterTransactions(){
+  let txs = getCombinedTransactions();
+  const f = getSearchFilters();
+
+  if(f.source !== 'all') txs = txs.filter(t => t._source === f.source);
+  if(f.dateFrom) txs = txs.filter(t => t.date && t.date >= f.dateFrom);
+  if(f.dateTo)   txs = txs.filter(t => t.date && t.date <= f.dateTo);
+  if(f.category !== 'all') txs = txs.filter(t => t.type === f.category);
+
+  if(f.shed === 'none') txs = txs.filter(t => !t.destination);
+  else if(f.shed !== 'all') txs = txs.filter(t => t.destination === f.shed);
+
+  if(f.text) txs = txs.filter(t => (t.description || '').toLowerCase().includes(f.text));
+
+  txs.sort((a,b) => {
+    const ka = (a.date || '') + String(a.timestamp || 0);
+    const kb = (b.date || '') + String(b.timestamp || 0);
+    return kb.localeCompare(ka);
+  });
+  return txs;
+}
+
+function runSearchDashboard(){
+  const results = filterTransactions();
+  lastSearchResults = results;
+
+  const mc = document.getElementById('srchMatchCount');
+  const tc = document.getElementById('srchTotalCount');
+  if(mc) mc.textContent = results.length;
+  if(tc) tc.textContent = getCombinedTransactions().length;
+
+  renderSearchKpis(results);
+  renderSearchTable(results);
+  renderSearchCategoryTotals(results);
+  buildSrchCategoryChart(results);
+  buildSrchMonthlyChart(results);
+}
+
+function resetSearchDashboard(){
+  document.getElementById('srchDateFrom').value = '';
+  document.getElementById('srchDateTo').value = '';
+  document.getElementById('srchSource').value = 'all';
+  populateSearchCategoryOptions();
+  document.getElementById('srchCategory').value = 'all';
+  document.getElementById('srchShed').value = 'all';
+  document.getElementById('srchText').value = '';
+  document.querySelectorAll('.quick-ranges .pill').forEach(p => p.classList.remove('active'));
+  const allBtn = document.querySelector('.quick-ranges .pill[data-range="all"]');
+  if(allBtn) allBtn.classList.add('active');
+  runSearchDashboard();
+}
+
+function renderSearchKpis(results){
+  let totalQty=0, oldQty=0, newQty=0, dptQty=0, fillingQty=0, damagedQty=0, othersQty=0;
+  results.forEach(t => {
+    const q = t.quantity || 0;
+    totalQty += q;
+    if(t._source === 'old') oldQty += q; else newQty += q;
+    if(t.destination === 'dpt') dptQty += q;
+    else if(t.destination === 'filling') fillingQty += q;
+    if(t.type === 'received_from_damaged_cylinder') damagedQty += q;
+    if(t.type === 'received_from_others') othersQty += q;
+  });
+  document.getElementById('srchKpiTx').textContent         = results.length;
+  document.getElementById('srchKpiQty').textContent        = totalQty;
+  document.getElementById('srchKpiOldQty').textContent     = oldQty;
+  document.getElementById('srchKpiNewQty').textContent     = newQty;
+  document.getElementById('srchKpiDptQty').textContent     = dptQty;
+  document.getElementById('srchKpiFillingQty').textContent = fillingQty;
+  document.getElementById('srchKpiDamagedQty').textContent = damagedQty;
+  document.getElementById('srchKpiOthersQty').textContent  = othersQty;
+}
+
+function renderSearchTable(results){
+  const tbody = document.getElementById('srchResultsBody');
+  const label = document.getElementById('srchResultLabel');
+
+  if(results.length === 0){
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i>No matching transactions</td></tr>';
+    label.textContent = '';
+    return;
+  }
+
+  label.textContent = 'Showing ' + results.length + ' transaction(s)';
+  const display = results.slice(0, 500);
+
+  tbody.innerHTML = display.map(t => `
+    <tr>
+      <td><span class="badge ${getSourceBadgeClass(t._source)}">${getSourceBadgeLabel(t._source)}</span></td>
+      <td>${formatDate(t.date)}</td>
+      <td><span class="badge ${getBadgeClass(t.type)}">${getCategoryLabel(t.type)}</span></td>
+      <td>${renderShedCell(t.destination, t.type)}</td>
+      <td><strong>${t.quantity}</strong></td>
+      <td>${t.description || '-'}</td>
+    </tr>`).join('');
+
+  if(results.length > 500){
+    tbody.innerHTML += '<tr><td colspan="6" style="text-align:center;color:#999;font-style:italic;padding:14px;">Showing first 500 rows. Narrow filters or export to see all.</td></tr>';
+  }
+}
+
+function renderSearchCategoryTotals(results){
+  const tbody = document.getElementById('srchCategoryTotalsBody');
+  if(results.length === 0){
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-table"></i>No data</td></tr>';
+    return;
+  }
+
+  const grouped = {};
+  results.forEach(t => {
+    const key = t._source + '::' + t.type;
+    if(!grouped[key]) grouped[key] = { source:t._source, type:t.type, count:0, qty:0 };
+    grouped[key].count += 1;
+    grouped[key].qty += (t.quantity || 0);
+  });
+
+  const arr = Object.values(grouped).sort((a,b) => b.qty - a.qty);
+
+  let html = arr.map(g => `
+    <tr>
+      <td><span class="badge ${getBadgeClass(g.type)}">${getCategoryLabel(g.type)}</span></td>
+      <td><span class="badge ${getSourceBadgeClass(g.source)}">${getSourceBadgeLabel(g.source)}</span></td>
+      <td style="text-align:right;">${g.count}</td>
+      <td style="text-align:right;font-weight:800;color:#0d2b5e;">${g.qty}</td>
+    </tr>`).join('');
+
+  const totalTx  = arr.reduce((s,g) => s + g.count, 0);
+  const totalQty = arr.reduce((s,g) => s + g.qty, 0);
+
+  html += `
+    <tr style="border-top:2px solid #e9edf2;background:#f8fafc;">
+      <td style="font-weight:800;"><i class="fas fa-sigma" style="color:#8b5cf6;margin-right:7px;"></i>Total</td>
+      <td></td>
+      <td style="text-align:right;font-weight:800;">${totalTx}</td>
+      <td style="text-align:right;font-weight:800;font-size:16px;color:#8b5cf6;">${totalQty}</td>
+    </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+function buildSrchCategoryChart(results){
+  const ctx = document.getElementById('srchCategoryChart').getContext('2d');
+  if(srchCategoryChartInstance) srchCategoryChartInstance.destroy();
+
+  const grouped = {};
+  results.forEach(t => {
+    const label = (t._source === 'old' ? 'Old — ' : 'New — ') + getCategoryLabel(t.type);
+    grouped[label] = (grouped[label] || 0) + (t.quantity || 0);
+  });
+
+  const labels = Object.keys(grouped);
+  if(labels.length === 0){
+    srchCategoryChartInstance = new Chart(ctx, {
+      type:'bar',
+      data:{ labels:['No Data'], datasets:[{ data:[0], backgroundColor:'#e9edf2' }] },
+      options:{ responsive:true, plugins:{ legend:{ display:false } } }
+    });
+    return;
+  }
+
+  const data = labels.map(k => grouped[k]);
+  const colors = labels.map(l => {
+    if(l.indexOf('Received from Shed') !== -1) return 'rgba(45,124,246,.75)';
+    if(l.indexOf('Accepted Salvage Issued') !== -1) return 'rgba(236,72,153,.75)';
+    if(l.indexOf('Issued for Salvage') !== -1) return 'rgba(245,158,11,.75)';
+    if(l.indexOf('Accepted Salvage') !== -1) return 'rgba(34,197,94,.75)';
+    if(l.indexOf('Rejected') !== -1) return 'rgba(239,68,68,.75)';
+    if(l.indexOf('New Valve Received') !== -1) return 'rgba(14,165,233,.75)';
+    if(l.indexOf('New Valve Issued') !== -1) return 'rgba(249,115,22,.75)';
+    if(l.indexOf('Damaged Cylinder') !== -1) return 'rgba(20,184,166,.75)';
+    if(l.indexOf('Received from Others') !== -1) return 'rgba(244,63,94,.75)';
+    return 'rgba(139,92,246,.75)';
+  });
+
+  srchCategoryChartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Quantity', data, backgroundColor:colors, borderRadius:6, maxBarThickness:40 }] },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } }, grid:{ color:'#f1f5f9' } },
+        x:{ ticks:{ font:{ size:9 } }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+function buildSrchMonthlyChart(results){
+  const ctx = document.getElementById('srchMonthlyChart').getContext('2d');
+  if(srchMonthlyChartInstance) srchMonthlyChartInstance.destroy();
+
+  const months = {};
+  results.forEach(t => {
+    if(!t.date) return;
+    const k = t.date.substring(0,7);
+    if(!months[k]) months[k] = { old:0, new:0 };
+    const q = t.quantity || 0;
+    if(t._source === 'old') months[k].old += q; else months[k].new += q;
+  });
+
+  const sorted = Object.keys(months).sort();
+  const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const labels = sorted.map(k => { const p = k.split('-'); return mNames[parseInt(p[1])-1] + ' ' + p[0]; });
+
+  srchMonthlyChartInstance = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: labels.length ? labels : ['No Data'],
+      datasets:[
+        { label:'Old Valve Qty', data: sorted.length ? sorted.map(k=>months[k].old) : [0],
+          borderColor:'#2d7cf6', backgroundColor:'rgba(45,124,246,.14)', fill:true, tension:.35, borderWidth:2.5, pointRadius:3 },
+        { label:'New Valve Qty', data: sorted.length ? sorted.map(k=>months[k].new) : [0],
+          borderColor:'#0ea5e9', backgroundColor:'rgba(14,165,233,.14)', fill:true, tension:.35, borderWidth:2.5, pointRadius:3 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ position:'top', labels:{ boxWidth:12, padding:11, font:{ size:11, weight:'600' } } } },
+      scales:{
+        y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 } }, grid:{ color:'#f1f5f9' } },
+        x:{ ticks:{ font:{ size:10 } }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+/* ----- Search Exports ----- */
+function exportSearchPDF(){
+  const results = (lastSearchResults && lastSearchResults.length) ? lastSearchResults : filterTransactions();
+  if(results.length === 0){ alert('No matching data to export.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('landscape','mm','a4');
+
+  doc.setFillColor(139,92,246);
+  doc.rect(0,0,297,32,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(17);
+  doc.text('Valve Data Management System - Search Report', 20, 18);
+  doc.setTextColor(50);
+  doc.setFontSize(10);
+  doc.text('Generated: ' + new Date().toLocaleString() +
+           (currentUser ? '  |  By: ' + currentUser.username : ''), 20, 40);
+
+  const f = getSearchFilters();
+  doc.text('Filters — Source: ' + f.source.toUpperCase() +
+           ' | Category: ' + f.category + ' | Shed: ' + f.shed +
+           (f.dateFrom ? ' | From: ' + f.dateFrom : '') +
+           (f.dateTo ? ' | To: ' + f.dateTo : '') +
+           (f.text ? ' | Text: "' + f.text + '"' : ''), 20, 46);
+
+  let totalQty=0, oldQty=0, newQty=0, damagedQty=0, othersQty=0;
+  results.forEach(t => {
+    const q = t.quantity || 0;
+    totalQty += q;
+    if(t._source === 'old') oldQty += q; else newQty += q;
+    if(t.type === 'received_from_damaged_cylinder') damagedQty += q;
+    if(t.type === 'received_from_others') othersQty += q;
+  });
+
+  doc.setFontSize(11);
+  doc.text('Matching Transactions: ' + results.length, 20, 56);
+  doc.text('Total Quantity: ' + totalQty, 90, 56);
+  doc.text('Old Valve Qty: ' + oldQty, 150, 56);
+  doc.text('New Valve Qty: ' + newQty, 210, 56);
+  doc.text('Damaged Cylinder Qty: ' + damagedQty, 20, 63);
+  doc.text('Received from Others Qty: ' + othersQty, 90, 63);
+
+  const rows = results.map(t => {
+    return [ getSourceBadgeLabel(t._source), formatDate(t.date), getCategoryLabel(t.type), shedText(t), String(t.quantity), t.description || '-' ];
+  });
+
+  doc.autoTable({
+    head: [['Source','Date','Type','Shed','Qty','Description']],
+    body: rows, startY: 70,
+    styles:{ fontSize:8, cellPadding:2 },
+    headStyles:{ fillColor:[139,92,246], textColor:[255,255,255], fontSize:9 },
+    alternateRowStyles:{ fillColor:[250,245,255] },
+    margin:{ left:20, right:20 }
+  });
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Valve Data Management System', 20, doc.internal.pageSize.height - 8);
+    doc.text('Page ' + i + ' of ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 8);
+  }
+
+  doc.save('Valve_Search_Report.pdf');
+}
+
+function exportSearchExcel(){
+  const results = (lastSearchResults && lastSearchResults.length) ? lastSearchResults : filterTransactions();
+  if(results.length === 0){ alert('No matching data to export.'); return; }
+
+  const f = getSearchFilters();
+  let totalQty=0, oldQty=0, newQty=0, dptQty=0, fillingQty=0, damagedQty=0, othersQty=0;
+  results.forEach(t => {
+    const q = t.quantity || 0;
+    totalQty += q;
+    if(t._source === 'old') oldQty += q; else newQty += q;
+    if(t.destination === 'dpt') dptQty += q;
+    else if(t.destination === 'filling') fillingQty += q;
+    if(t.type === 'received_from_damaged_cylinder') damagedQty += q;
+    if(t.type === 'received_from_others') othersQty += q;
+  });
+
+  const data = [
+    ['Valve Data Management System - Search Report'],
+    [''],
+    ['Generated:', new Date().toLocaleString()],
+    ['Generated By:', currentUser ? currentUser.username : '-'],
+    [''],
+    ['Filters Applied:'],
+    ['  Source:', f.source],
+    ['  Category:', f.category],
+    ['  Shed:', f.shed],
+    ['  Date From:', f.dateFrom || '(any)'],
+    ['  Date To:', f.dateTo || '(any)'],
+    ['  Description Contains:', f.text || '(any)'],
+    [''],
+    ['Matching Transactions:', results.length],
+    ['Total Quantity:', totalQty],
+    ['Old Valve Quantity:', oldQty],
+    ['New Valve Quantity:', newQty],
+    ['DPT Shed Quantity:', dptQty],
+    ['Filling Shed Quantity:', fillingQty],
+    ['Damaged Cylinder Quantity:', damagedQty],
+    ['Received from Others Quantity:', othersQty],
+    [''],
+    ['Filtered Transactions'],
+    ['Source','Date','Type','Shed','Quantity','Description']
+  ];
+
+  results.forEach(t => {
+    data.push([ getSourceBadgeLabel(t._source), formatDate(t.date), getCategoryLabel(t.type), shedText(t), t.quantity, t.description || '-' ]);
+  });
+
+  data.push([]);
+  data.push(['Category Totals']);
+  data.push(['Category','Source','Transactions','Total Quantity']);
+
+  const grouped = {};
+  results.forEach(t => {
+    const key = t._source + '::' + t.type;
+    if(!grouped[key]) grouped[key] = { source:t._source, type:t.type, count:0, qty:0 };
+    grouped[key].count += 1;
+    grouped[key].qty += (t.quantity || 0);
+  });
+  Object.values(grouped).forEach(g => {
+    data.push([ getCategoryLabel(g.type), getSourceBadgeLabel(g.source), g.count, g.qty ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:16},{wch:14},{wch:30},{wch:18},{wch:10},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Search_Report');
+  XLSX.writeFile(wb, 'Valve_Search_Report.xlsx');
+}
+
+/* ============================================================
+   PASSWORD MODAL
+   ============================================================ */
+let passwordModalCallback = null;
+
+function openPasswordModal(callback){
+  document.getElementById('passwordModal').classList.add('open');
+  document.getElementById('adminPassInput').value = '';
+  document.getElementById('passModalError').textContent = '';
+  passwordModalCallback = callback;
+
+  const confirmBtn = document.getElementById('passwordModalConfirmBtn');
+  const newBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+  newBtn.addEventListener('click', () => {
+    const pwd = document.getElementById('adminPassInput').value;
+    if(passwordModalCallback) passwordModalCallback(pwd);
+  });
+
+  const inp = document.getElementById('adminPassInput');
+  inp.onkeydown = e => {
+    if(e.key === 'Enter'){
+      const pwd = inp.value;
+      if(passwordModalCallback) passwordModalCallback(pwd);
+    }
+  };
+  setTimeout(() => inp.focus(), 100);
+}
+
+function closePasswordModal(){
+  document.getElementById('passwordModal').classList.remove('open');
+  passwordModalCallback = null;
+}
+
+function deleteTxWithAuth(id){
+  openPasswordModal(password => {
+    if(currentUser && password === currentUser.password){
+      deleteTransaction(id);
+      refreshAll();
+      scheduleSync();
+      closePasswordModal();
+      showToast('<i class="fas fa-trash"></i> Transaction deleted.','#dc3545');
+    } else {
+      document.getElementById('passModalError').textContent = '❌ Incorrect password.';
+    }
+  });
+}
+
+function deleteNewTxWithAuth(id){
+  openPasswordModal(password => {
+    if(currentUser && password === currentUser.password){
+      deleteNewTransaction(id);
+      refreshAll();
+      scheduleSync();
+      closePasswordModal();
+      showToast('<i class="fas fa-trash"></i> New valve transaction deleted.','#dc3545');
+    } else {
+      document.getElementById('passModalError').textContent = '❌ Incorrect password.';
+    }
+  });
+}
+
+/* ============================================================
+   ACCOUNT MODAL
+   ============================================================ */
+function openAccountModal(){
+  if(!currentUser) return;
+  document.getElementById('accountModal').classList.add('open');
+  document.getElementById('accUsername').value = currentUser.username;
+  document.getElementById('accRole').value = currentUser.role === 'admin' ? 'Administrator' : 'User (View Only)';
+  document.getElementById('accCurPass').value = '';
+  document.getElementById('accNewPass').value = '';
+  document.getElementById('accConfPass').value = '';
+  document.getElementById('accMsg').textContent = '';
+}
+function closeAccountModal(){ document.getElementById('accountModal').classList.remove('open'); }
+
+function saveAccountPassword(){
+  const cur  = document.getElementById('accCurPass').value;
+  const np   = document.getElementById('accNewPass').value;
+  const conf = document.getElementById('accConfPass').value;
+  const msg  = document.getElementById('accMsg');
+
+  if(cur !== currentUser.password){ msg.style.color = 'var(--danger)'; msg.textContent = '❌ Current password is incorrect.'; return; }
+  if(np.length < 4){ msg.style.color = 'var(--danger)'; msg.textContent = '❌ New password must be at least 4 characters.'; return; }
+  if(np !== conf){ msg.style.color = 'var(--danger)'; msg.textContent = '❌ Passwords do not match.'; return; }
+
+  const users = getUsers();
+  const u = users.find(x => x.id === currentUser.id);
+  if(!u){ msg.style.color = 'var(--danger)'; msg.textContent = '❌ User not found.'; return; }
+  u.password = np;
+  saveUsers(users);
+  currentUser = u;
+
+  msg.style.color = 'var(--success)';
+  msg.textContent = '✅ Password updated successfully!';
+  document.getElementById('accCurPass').value = '';
+  document.getElementById('accNewPass').value = '';
+  document.getElementById('accConfPass').value = '';
+  scheduleSync();
+  showToast('<i class="fas fa-check-circle"></i> Password updated.');
+}
+
+/* ============================================================
+   USERS MANAGEMENT (ADMIN)
+   ============================================================ */
+let editingUserId = null;
+
+function renderUsersTable(){
+  const tbody = document.getElementById('usersTableBody');
+  if(!tbody) return;
+  const users = getUsers();
+
+  tbody.innerHTML = users.map(u => {
+    const isSelf = currentUser && currentUser.id === u.id;
+    let permsText;
+    if(u.role === 'admin'){
+      permsText = '<span class="badge badge-yellow">Full Access</span>';
+    } else {
+      const p = u.perms || {};
+      const list = [];
+      if(p.viewOld)   list.push('<span class="badge badge-blue">Old</span>');
+      if(p.viewNew)   list.push('<span class="badge badge-sky">New</span>');
+      if(p.viewPlant) list.push('<span class="badge badge-green">Plant</span>');
+      if(p.viewSearch)list.push('<span class="badge badge-violet">Search</span>');
+      if(p.canEdit)   list.push('<span class="badge badge-orange">Edit</span>');
+      permsText = list.length ? list.join(' ') : '<span class="badge badge-grey">View Only</span>';
+    }
+
+    return `
+      <tr>
+        <td>
+          <strong>${u.username}</strong>
+          ${isSelf ? '<span class="badge badge-green" style="margin-left:7px;">You</span>' : ''}
+        </td>
+        <td><span class="role-chip ${u.role === 'admin' ? 'role-admin' : 'role-user'}">
+          <i class="fas ${u.role === 'admin' ? 'fa-crown' : 'fa-user'}"></i>
+          ${u.role === 'admin' ? 'Admin' : 'User'}
+        </span></td>
+        <td style="line-height:2;">${permsText}</td>
+        <td><span class="status-chip ${u.active === false ? 'status-off' : 'status-active'}">
+          ${u.active === false ? 'Disabled' : 'Active'}
+        </span></td>
+        <td style="font-size:12px;color:#94a3b8;">${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}</td>
+        <td>
+          <button class="icon-btn edit" onclick="openUserModal('${u.id}')" title="Edit"><i class="fas fa-pen"></i></button>
+          ${isSelf ? '' : `<button class="icon-btn del" onclick="deleteUser('${u.id}')" title="Delete" style="margin-left:6px;"><i class="fas fa-trash"></i></button>`}
+        </td>
+      </tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty-state"><i class="fas fa-users"></i>No users</td></tr>';
+}
+
+function onUserRoleChange(){
+  const role = document.getElementById('umRole').value;
+  document.getElementById('umPermsWrap').style.display = (role === 'admin') ? 'none' : 'block';
+}
+
+function openUserModal(userId){
+  if(!isAdmin()) return;
+  editingUserId = userId || null;
+  const modal = document.getElementById('userModal');
+  modal.classList.add('open');
+
+  const title = document.getElementById('userModalTitle');
+  const msg = document.getElementById('umMsg');
+  msg.textContent = '';
+
+  if(userId){
+    const u = getUsers().find(x => x.id === userId);
+    if(!u) return;
+    title.textContent = 'Edit User — ' + u.username;
+    document.getElementById('umUsername').value = u.username;
+    document.getElementById('umPassword').value = u.password;
+    document.getElementById('umRole').value = u.role;
+    document.getElementById('umActive').value = u.active === false ? '0' : '1';
+    const p = u.perms || {};
+    document.getElementById('pOld').checked    = !!p.viewOld;
+    document.getElementById('pNew').checked    = !!p.viewNew;
+    document.getElementById('pPlant').checked  = !!p.viewPlant;
+    document.getElementById('pSearch').checked = !!p.viewSearch;
+    document.getElementById('pEdit').checked   = !!p.canEdit;
+  } else {
+    title.textContent = 'Add User';
+    document.getElementById('umUsername').value = '';
+    document.getElementById('umPassword').value = '';
+    document.getElementById('umRole').value = 'user';
+    document.getElementById('umActive').value = '1';
+    document.getElementById('pOld').checked    = true;
+    document.getElementById('pNew').checked    = true;
+    document.getElementById('pPlant').checked  = true;
+    document.getElementById('pSearch').checked = false;
+    document.getElementById('pEdit').checked   = false;
+  }
+  onUserRoleChange();
+}
+
+function closeUserModal(){
+  document.getElementById('userModal').classList.remove('open');
+  editingUserId = null;
+}
+
+function saveUser(){
+  if(!isAdmin()) return;
+
+  const username = (document.getElementById('umUsername').value || '').trim();
+  const password = document.getElementById('umPassword').value || '';
+  const role     = document.getElementById('umRole').value;
+  const active   = document.getElementById('umActive').value === '1';
+  const msg      = document.getElementById('umMsg');
+
+  if(!username){ msg.textContent = 'Please enter a Login ID.'; return; }
+  if(username.length < 3){ msg.textContent = 'Login ID must be at least 3 characters.'; return; }
+  if(!password){ msg.textContent = 'Please enter a password.'; return; }
+  if(password.length < 4){ msg.textContent = 'Password must be at least 4 characters.'; return; }
+
+  const users = getUsers();
+  const clash = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.id !== editingUserId);
+  if(clash){ msg.textContent = '❌ That Login ID is already taken.'; return; }
+
+  const perms = {
+    viewOld:   document.getElementById('pOld').checked,
+    viewNew:   document.getElementById('pNew').checked,
+    viewPlant: document.getElementById('pPlant').checked,
+    viewSearch:document.getElementById('pSearch').checked,
+    canEdit:   document.getElementById('pEdit').checked
+  };
+
+  if(editingUserId){
+    const u = users.find(x => x.id === editingUserId);
+    if(!u){ msg.textContent = '❌ User not found.'; return; }
+    if(u.role === 'admin' && role !== 'admin'){
+      const otherAdmins = users.filter(x => x.role === 'admin' && x.id !== u.id && x.active !== false);
+      if(otherAdmins.length === 0){ msg.textContent = '❌ At least one active administrator is required.'; return; }
+    }
+    if(u.role === 'admin' && !active){
+      const otherAdmins = users.filter(x => x.role === 'admin' && x.id !== u.id && x.active !== false);
+      if(otherAdmins.length === 0){ msg.textContent = '❌ At least one active administrator is required.'; return; }
+    }
+    u.username = username;
+    u.password = password;
+    u.role     = role;
+    u.active   = active;
+    u.perms    = role === 'admin'
+      ? { viewOld:true, viewNew:true, viewPlant:true, viewSearch:true, canEdit:true }
+      : perms;
+    saveUsers(users);
+  } else {
+    users.push({
+      id: 'u_' + generateId(),
+      username, password, role, active,
+      perms: role === 'admin'
+        ? { viewOld:true, viewNew:true, viewPlant:true, viewSearch:true, canEdit:true }
+        : perms,
+      createdAt: new Date().toISOString()
+    });
+    saveUsers(users);
+  }
+
+  if(currentUser && currentUser.id === editingUserId){
+    refreshCurrentUser();
+    applyPermissions();
+    updateHeaderUser();
+  }
+
+  closeUserModal();
+  renderUsersTable();
+  updateSyncCounters();
+  scheduleSync();
+  showToast('<i class="fas fa-check-circle"></i> User saved successfully.','#0ea5e9');
+}
+
+function deleteUser(userId){
+  if(!isAdmin()) return;
+  const users = getUsers();
+  const u = users.find(x => x.id === userId);
+  if(!u) return;
+
+  if(currentUser && currentUser.id === userId){
+    showToast('<i class="fas fa-ban"></i> You cannot delete your own account.','#dc3545');
+    return;
+  }
+  if(u.role === 'admin'){
+    const otherAdmins = users.filter(x => x.role === 'admin' && x.id !== userId && x.active !== false);
+    if(otherAdmins.length === 0){
+      showToast('<i class="fas fa-ban"></i> At least one administrator must remain.','#dc3545');
+      return;
+    }
+  }
+  if(!confirm('Delete user "' + u.username + '"? This cannot be undone.')) return;
+
+  saveUsers(users.filter(x => x.id !== userId));
+  renderUsersTable();
+  updateSyncCounters();
+  scheduleSync();
+  showToast('<i class="fas fa-trash"></i> User deleted.','#dc3545');
+}
+
+function pushUsersToServer(){
+  if(!isAdmin()) return;
+  pushToServer(true);
+}
+
+/* ============================================================
+   SETTINGS — PASSWORD / DATA
+   ============================================================ */
+function changePassword(){
+  const cur  = document.getElementById('curPass').value;
+  const np   = document.getElementById('newPass').value;
+  const conf = document.getElementById('confPass').value;
+  const msg  = document.getElementById('passMsg');
+  msg.style.display = 'block';
+
+  if(cur !== currentUser.password){
+    msg.className = 'status-msg error';
+    msg.textContent = '❌ Current password is incorrect.';
+    return;
+  }
+  if(np.length < 4){
+    msg.className = 'status-msg error';
+    msg.textContent = '❌ New password must be at least 4 characters.';
+    return;
+  }
+  if(np !== conf){
+    msg.className = 'status-msg error';
+    msg.textContent = '❌ Passwords do not match.';
+    return;
+  }
+
+  const users = getUsers();
+  const u = users.find(x => x.id === currentUser.id);
+  u.password = np;
+  saveUsers(users);
+  currentUser = u;
+
+  msg.className = 'status-msg success';
+  msg.textContent = '✅ Password changed successfully!';
+  document.getElementById('curPass').value = '';
+  document.getElementById('newPass').value = '';
+  document.getElementById('confPass').value = '';
+  scheduleSync();
+}
+
+function clearAllData(){
+  openPasswordModal(password => {
+    if(!currentUser || password !== currentUser.password){
+      document.getElementById('passModalError').textContent = '❌ Incorrect password.';
+      return;
+    }
+    if(!confirm('⚠️ Delete ALL OLD valve data? This cannot be undone!')){ closePasswordModal(); return; }
+    if(!confirm('Really? All old valve transactions will be lost.')){ closePasswordModal(); return; }
+
+    setTransactions([]);
+    const m = document.getElementById('dataMsg');
+    m.style.display = 'block';
+    m.className = 'status-msg success';
+    m.textContent = '✅ All old valve data cleared.';
+    refreshAll();
+    scheduleSync();
+    closePasswordModal();
+    showToast('<i class="fas fa-trash"></i> Old valve data cleared.','#dc3545');
+  });
+}
+
+function clearNewData(){
+  openPasswordModal(password => {
+    if(!currentUser || password !== currentUser.password){
+      document.getElementById('passModalError').textContent = '❌ Incorrect password.';
+      return;
+    }
+    if(!confirm('⚠️ Delete ALL NEW valve data? This cannot be undone!')){ closePasswordModal(); return; }
+    if(!confirm('Really? All new SC valve records will be lost.')){ closePasswordModal(); return; }
+
+    setNewTransactions([]);
+    const m = document.getElementById('newDataMsg');
+    m.style.display = 'block';
+    m.className = 'status-msg success';
+    m.textContent = '✅ All new valve data cleared.';
+    refreshAll();
+    scheduleSync();
+    closePasswordModal();
+    showToast('<i class="fas fa-trash"></i> New valve data cleared.','#dc3545');
+  });
+}
+
+/* ============================================================
+   EXPORTS — OLD / NEW
+   ============================================================ */
+function exportPDF(){
+  const txs = getTransactions();
+  if(txs.length === 0){ alert('No data to export.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('landscape','mm','a4');
+  const stats = calcStocks(txs);
+
+  doc.setFillColor(13,43,94);
+  doc.rect(0,0,297,32,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);
+  doc.text('Valve Data Management System - Old Valve Report', 20, 18);
+  doc.setTextColor(50);
+  doc.setFontSize(10);
+  doc.text('Generated: ' + new Date().toLocaleString() +
+           (currentUser ? '  |  By: ' + currentUser.username : ''), 20, 40);
+
+  doc.setFontSize(11);
+  doc.text('Received from Shed: ' + stats.stockReceived, 20, 52);
+  doc.text('Issued for Salvage: ' + stats.stockIssued, 20, 60);
+  doc.text('Accepted Salvage: ' + stats.stockAccepted, 20, 68);
+  doc.text('Rejected Salvage: ' + stats.stockRejected, 20, 76);
+  doc.text('DPT Shed Stock: ' + stats.dptShed, 20, 84);
+  doc.text('Filling Shed Stock: ' + stats.fillingShed, 20, 92);
+  doc.text('Extra from Damaged Cylinder: ' + stats.sumDamaged, 120, 52);
+  doc.text('Received from Others: ' + stats.sumOthers, 120, 60);
+  doc.text('Total Transactions: ' + stats.totalTx, 120, 68);
+  doc.text('Total Valves in Store: ' + stats.totalValves, 120, 76);
+
+  const rows = txs.map(t => {
+    return [ formatDate(t.date), getCategoryLabel(t.type), shedText(t), t.category || getCategoryLabel(t.type), t.quantity, t.description || '-' ];
+  });
+  rows.sort((a,b) => b[0].localeCompare(a[0]));
+
+  doc.autoTable({
+    head: [['Date','Type','Shed','Category','Qty','Description']],
+    body: rows, startY: 100,
+    styles:{ fontSize:8, cellPadding:2 },
+    headStyles:{ fillColor:[13,43,94], textColor:[255,255,255], fontSize:9 },
+    alternateRowStyles:{ fillColor:[245,247,250] },
+    margin:{ left:20, right:20 }
+  });
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Valve Data Management System - Confidential', 20, doc.internal.pageSize.height - 8);
+    doc.text('Page ' + i + ' of ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 8);
+  }
+
+  doc.save('Valve_Old_Report.pdf');
+}
+
+function exportExcel(){
+  const txs = getTransactions();
+  if(txs.length === 0){ alert('No data to export.'); return; }
+
+  const stats = calcStocks(txs);
+  const data = [
+    ['Valve Data Management System - Old Valve Inventory Report'],
+    [''],
+    ['Generated:', new Date().toLocaleString()],
+    ['Generated By:', currentUser ? currentUser.username : '-'],
+    [''],
+    ['Received from Shed:', stats.stockReceived],
+    ['Issued for Salvage:', stats.stockIssued],
+    ['Accepted Salvage:', stats.stockAccepted],
+    ['Rejected Salvage:', stats.stockRejected],
+    ['DPT Shed Stock:', stats.dptShed],
+    ['Filling Shed Stock:', stats.fillingShed],
+    ['Extra from Damaged Cylinder:', stats.sumDamaged],
+    ['Received from Others:', stats.sumOthers],
+    ['Total Transactions:', stats.totalTx],
+    ['Total Valves in Store:', stats.totalValves],
+    [''],
+    ['Transaction Details'],
+    ['Date','Type','Shed','Category','Quantity','Description']
+  ];
+
+  txs.forEach(t => {
+    data.push([ formatDate(t.date), getCategoryLabel(t.type), shedText(t), t.category || getCategoryLabel(t.type), t.quantity, t.description || '-' ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:14},{wch:30},{wch:18},{wch:22},{wch:10},{wch:34}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Old_Valve');
+  XLSX.writeFile(wb, 'Valve_Old_Report.xlsx');
+}
+
+function exportNewPDF(){
+  const txs = getNewTransactions();
+  if(txs.length === 0){ alert('No new valve data to export.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('landscape','mm','a4');
+  const s = calcNewStocks(txs, getTransactions());
+  const balMap = buildNewBalanceMap();
+
+  doc.setFillColor(14,165,233);
+  doc.rect(0,0,297,32,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);
+  doc.text('Valve Data Management System - New SC Valve Report', 20, 18);
+  doc.setTextColor(50);
+  doc.setFontSize(10);
+  doc.text('Generated: ' + new Date().toLocaleString() +
+           (currentUser ? '  |  By: ' + currentUser.username : ''), 20, 40);
+
+  doc.setFontSize(11);
+  doc.text('New SC Valve Stock at Store: ' + s.stockAtStore, 20, 52);
+  doc.text('New SC Valve Issued (total): ' + s.issued, 20, 60);
+  doc.text('Total Received: ' + s.received, 20, 68);
+  doc.text('DPT Shed Stock (net): ' + s.dptShed, 20, 76);
+  doc.text('Filling Shed Stock (net): ' + s.fillingShed, 20, 84);
+  doc.text('Issued Today (' + s.todayLabel + '): ' + s.issuedToday, 120, 52);
+  doc.text('Issued This Month (' + s.monthLabel + '): ' + s.issuedThisMonth, 120, 60);
+  doc.text('Total Transactions: ' + s.totalTx, 120, 68);
+
+  const rows = txs.map(t => [
+    formatDate(t.date),
+    getNewCategoryLabel(t.type),
+    t.destination ? ('To ' + getShedLabel(t.destination)) : '-',
+    t.quantity,
+    (balMap[t.id] !== undefined ? balMap[t.id] : '-'),
+    t.description || '-'
+  ]);
+  rows.sort((a,b) => b[0].localeCompare(a[0]));
+
+  doc.autoTable({
+    head: [['Date','Type','Shed','Qty','Balance After','Description']],
+    body: rows, startY: 100,
+    styles:{ fontSize:8, cellPadding:2 },
+    headStyles:{ fillColor:[14,165,233], textColor:[255,255,255], fontSize:9 },
+    alternateRowStyles:{ fillColor:[240,249,255] },
+    margin:{ left:20, right:20 }
+  });
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Valve Data Management System - New Valve Report', 20, doc.internal.pageSize.height - 8);
+    doc.text('Page ' + i + ' of ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 8);
+  }
+
+  doc.save('Valve_New_Report.pdf');
+}
+
+function exportNewExcel(){
+  const txs = getNewTransactions();
+  if(txs.length === 0){ alert('No new valve data to export.'); return; }
+
+  const s = calcNewStocks(txs, getTransactions());
+  const balMap = buildNewBalanceMap();
+
+  const data = [
+    ['Valve Data Management System - New SC Valve Inventory Report'],
+    [''],
+    ['Generated:', new Date().toLocaleString()],
+    ['Generated By:', currentUser ? currentUser.username : '-'],
+    [''],
+    ['New SC Valve Stock at Store:', s.stockAtStore],
+    ['New SC Valve Issued (total):', s.issued],
+    ['Total Received:', s.received],
+    ['DPT Shed Stock (net):', s.dptShed],
+    ['Filling Shed Stock (net):', s.fillingShed],
+    ['Issued Today (' + s.todayLabel + '):', s.issuedToday],
+    ['Issued This Month (' + s.monthLabel + '):', s.issuedThisMonth],
+    ['Total Transactions:', s.totalTx],
+    [''],
+    ['Transaction Details'],
+    ['Date','Type','Shed','Quantity','Balance After','Description']
+  ];
+
+  txs.forEach(t => {
+    data.push([
+      formatDate(t.date),
+      getNewCategoryLabel(t.type),
+      t.destination ? ('To ' + getShedLabel(t.destination)) : '-',
+      t.quantity,
+      (balMap[t.id] !== undefined ? balMap[t.id] : '-'),
+      t.description || '-'
+    ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:14},{wch:36},{wch:18},{wch:10},{wch:14},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, ws, 'New_SC_Valve');
+  XLSX.writeFile(wb, 'Valve_New_Report.xlsx');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(function init(){
+  getUsers();
+
+  const sess = getSession();
+  if(sess){
+    const u = getUsers().find(x => x.id === sess.id && x.active !== false);
+    if(u){ currentUser = u; }
+    else clearSession();
+  }
+
+  loadSyncConfigIntoForm();
+
+  ['srchDateFrom','srchDateTo','srchCategory','srchShed'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', runSearchDashboard);
+  });
+  const txt = document.getElementById('srchText');
+  if(txt) txt.addEventListener('input', runSearchDashboard);
+
+  if(currentUser){
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.add('active');
+    applyPermissions();
+    updateHeaderUser();
+    renderAdminSetupBanner();
+    switchTab(firstAllowedTab());
+    refreshAll();
+    const cfg = getSyncCfg();
+    if(cfg.url) setTimeout(() => pullFromServer(false, true), 400);
+  } else {
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('app').classList.remove('active');
+    setTimeout(() => document.getElementById('loginUser').focus(), 200);
+  }
+
+  window.addEventListener('online', () => { if(getSyncCfg().url) pullFromServer(false, true); });
+  window.addEventListener('offline', () => setSyncStatus('error','Device offline'));
+})();
+
+document.getElementById('addTxModal').addEventListener('click', function(e){ if(e.target === this) closeAddTx(); });
+document.getElementById('newTxModal').addEventListener('click', function(e){ if(e.target === this) closeNewAddTx(); });
+document.getElementById('passwordModal').addEventListener('click', function(e){ if(e.target === this) closePasswordModal(); });
+document.getElementById('userModal').addEventListener('click', function(e){ if(e.target === this) closeUserModal(); });
+document.getElementById('accountModal').addEventListener('click', function(e){ if(e.target === this) closeAccountModal(); });
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    closeAddTx(); closeNewAddTx(); closePasswordModal(); closeUserModal(); closeAccountModal();
+  }
+});
+
+console.log('🏭 Valve Data Management System loaded.');
+console.log('🔑 Default admin → Login ID: admin | Password: admin123');
+console.log('☁️  Configure Cloud Database Sync (Firebase) from Settings.');
+</script>
+</body>
+</html>
